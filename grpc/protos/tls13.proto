@@ -1,0 +1,41 @@
+// protos/tls13parser.proto
+syntax = "proto3";
+
+// The package name is used by the generated Go code.
+package TlsParser;
+option go_package = "Tls13Parser";
+
+// The service definition.
+service TlsParser {
+  // A simple RPC that sends a greeting.
+  rpc SayHello (HandshakeRequest) returns (HandshakeResponse) {}
+}
+
+// The request message containing the user's name.
+message HandshakeRequest {
+  string data = 1;
+}
+
+message HandshakeResponse {
+  Handshake handshake  = 1;
+}
+
+message Handshake {
+  oneof payload {
+    NewSessionTicket new_session_ticket = 1;
+  }
+}
+
+message Extension {
+  uint32 type = 1;
+  bytes data = 2;
+}
+
+message NewSessionTicket {
+  uint32 ticket_lifetime = 1;
+  uint32 ticket_age_add = 2;
+  bytes ticket_nonce = 3;
+  bytes ticket = 4;
+  repeated Extension extensions = 5;
+}
+

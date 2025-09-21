@@ -1,0 +1,37 @@
+from scapy.layers.tls.record import TLS
+from scapy.layers.tls.handshake import TLS13NewSessionTicket
+
+# _TLSHandshake is protected, but we need to perform an instance check on this class
+# noinspection PyProtectedMember
+from scapy.layers.tls.handshake import _TLSHandshake
+
+# on a per-record basis, the default behavior can not distinguish between TLS12 and TLS13
+# thus we need to define TLS13 classes to be used manually
+TLS13_HANDSHAKES = {
+    4: TLS13NewSessionTicket,
+    # later: if TLS1.2 and TLS1.3 differs in record structure, add those here.
+}
+
+def parse_tls13(data: bytes | str):
+    if isinstance(data, bytes):
+        pass
+    if isinstance(data, str):
+        data = bytes.fromhex(data)
+
+
+    record: TLS = TLS(data)
+    parsed = []
+    for m in record.msg:
+        if isinstance(m, _TLSHandshake):
+            cls = TLS13_HANDSHAKES.get(m.msgtype)
+            parsed.append(cls(m.original) if cls else m)
+        else:
+            parsed.append(m)
+    return record, parsed
+
+
+
+# if __name__ == '__main__':
+#     raw_hex_new_session_ticket = "1603030039" + "040000350000012cb2e84fd00800000000000000000020078ce471076e6fcf8a8cbce7d3ef876bd01c1caeccded1fa1e722ffe3946821b0000"
+#     rec, msgs = parse_tls13(bytes.fromhex(raw_hex_new_session_ticket))
+#     print(msgs)
