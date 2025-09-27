@@ -8,27 +8,27 @@ default: start
 # Target to start the server in the background
 start: 
 	@if [ -f $(PIDFILE) ]; then \
-		echo "Server is already running with PID: $$(cat $(PIDFILE))"; \
+		echo "\033[0;31mServer is already running with PID: $$(cat $(PIDFILE))\033[0m"; \
 		exit 1; \
 	fi
-	@echo "Starting server..."
+	@echo "\033[0;32mStarting server...\033[0m"
 	@python server.py > server.log & echo $$! > $(PIDFILE)
-	@echo "Server started with PID: $$(cat $(PIDFILE))"
+	@echo "\033[0;32mServer started with PID: $$(cat $(PIDFILE))\033[0m"
 
 # Target to stop the server
 stop:
 	@if [ -f $(PIDFILE) ]; then \
-       	        echo "Stopping server..."; \
+       	        echo "\033[0;32mStopping server...\033[0m"; \
 		kill $$(cat $(PIDFILE)); \
 		rm $(PIDFILE); \
-		echo "Server stopped."; \
+		echo "\033[0;32mServer stopped.\033[0m"; \
 	else \
-		echo "Server not running (or PID file not found)."; \
+		echo "\033[0;31mServer not running (or PID file not found).\033[0m"; \
 	fi
 
 status:
 	@if [ -f $(PIDFILE) ]; then \
-		echo "Server is running with PID: $$(cat $(PIDFILE))"; \
+		echo "\033[0;32mServer is running with PID: $$(cat $(PIDFILE))\033[0m"; \
 	else \
-		echo "Server is not running."; \
+		echo "\033[0;31mServer is not running.\033[0m
 	fi
