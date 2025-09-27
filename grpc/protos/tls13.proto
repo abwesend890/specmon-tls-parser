@@ -2,8 +2,8 @@
 syntax = "proto3";
 
 // The package name is used by the generated Go code.
-package TlsParser;
-option go_package = "Tls13Parser";
+package Tls13Parser;
+option go_package = "./Tls13Parser";
 
 // The service definition.
 service TlsParser {
