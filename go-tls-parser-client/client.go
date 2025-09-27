@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	pb "go-tls-parser-client/go-client/Tls13Parser"
+	pb "go-tls-parser-client/Tls13Parser"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
