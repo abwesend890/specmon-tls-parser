@@ -26,18 +26,18 @@ func main() {
 	defer conn.Close()
 
 	// Create a new Greeter client
-	c := pb.NewGreeterClient(conn)
+	c := pb.NewTlsParserClient(conn)
 
 	// Contact the server and print out its response.
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
 	// Call the SayHello RPC
-	name := "Go"
-	r, err := c.SayHello(ctx, &pb.HelloRequest{Name: name})
+	data := "040000350000012cb2e84fd00800000000000000000020078ce471076e6fcf8a8cbce7d3ef876bd01c1caeccded1fa1e722ffe3946821b0000"
+	r, err := c.SayHello(ctx, &pb.HandshakeRequest{Data: data})
 	if err != nil {
 		log.Fatalf("could not greet: %v", err)
 	}
 
-	log.Printf("Greeting from server: %s", r.GetMessage())
+	log.Printf("Greeting from server: %s", r.Handshake)
 }
