@@ -21,7 +21,7 @@ build: build-python-server build-go-tls-parser-client shell
 test:
 	@pipenv run make start -C python-server/ ; true
 	sleep 1
-	@make test -C go-tls-parser-client/
+	@make -C client_example/ test
 	@pipenv run make stop -C python-server/
 
 test-server-grpcurl-newsessionticket:
