@@ -7,6 +7,7 @@ name = "pypi"
 scapy = {git = "https://github.com/secdev/scapy.git", editable = true}
 grpcio = "*"
 grpcio-tools = "*"
+grpcio-reflection = "*"
 
 [dev-packages]
 
