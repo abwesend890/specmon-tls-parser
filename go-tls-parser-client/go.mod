@@ -1,4 +1,4 @@
-module go-client
+module go-tls-parser-client
 
 go 1.24.5
 

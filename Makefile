@@ -11,17 +11,17 @@ build-python-server: install-environment
 	@echo "\033[0;32mbuilding python grpc files...\033[0m"
 	pipenv run python -m grpc_tools.protoc -I./grpc --pyi_out=python-server --python_out=python-server --grpc_python_out=python-server ./grpc/tls13.proto
 
-build-go-client:
+build-go-tls-parser-client:
 	@echo "\033[0;32mbuilding go grpc files...\033[0m"
-	protoc --go_out=./go-client --go-grpc_out=./go-client ./grpc/tls13.proto
-	make -C go-client/
+	protoc --go_out=./go-tls-parser-client --go-grpc_out=./go-tls-parser-client ./grpc/tls13.proto
+	make -C go-tls-parser-client/
 
-build: build-python-server build-go-client shell
+build: build-python-server build-go-tls-parser-client shell
 
 test:
-	@pipenv run make start -C python-server/
+	@pipenv run make start -C python-server/ ; true
 	sleep 1
-	@make run -C go-client/
+	@make test -C go-tls-parser-client/
 	@pipenv run make stop -C python-server/
 
 test-server-grpcurl-newsessionticket:
