@@ -1,4 +1,5 @@
 __pycache__/
+server.pid
 server.log
 *_pb2.py
 *_pb2_grpc.py
