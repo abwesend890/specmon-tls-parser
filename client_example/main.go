@@ -21,7 +21,7 @@ const (
 
 func main() {
 	ctx := context.Background()
-
+ 
 	// Connect to the gRPC server
 	conn, err := grpc.Dial(grpcAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -42,7 +42,7 @@ func main() {
 		log.Fatalf("Service name '%s' could not be resolved: %v", serviceName, err)
 	}
 
-	methodName := "SayHello"
+	methodName := "Handshake"
 	methodDesc := serviceDesc.FindMethodByName(methodName)
 	if methodDesc == nil {
 		log.Fatalf("Method name '%s' could not be found.", methodName)
@@ -50,7 +50,7 @@ func main() {
 
 	// Create a dynamic message and populate it
 	request := dynamic.NewMessage(methodDesc.GetInputType())
-	data := "040000350000012cb2e84fd00800000000000000000020078ce471076e6fcf8a8cbce7d3ef876bd01c1caeccded1fa1e722ffe3946821b0000"
+	data := "040000350000012cb2e84fd00800000000000000000020078ce471076e6fcf8a8cbce7d3ef876bd01c1caeccded1fa1e722ffe3946821b000016"
 	request.SetFieldByName("data", data)
 
 	// Create a dynamic stub and invoke the RPC

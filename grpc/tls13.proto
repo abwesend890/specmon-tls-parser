@@ -8,7 +8,7 @@ option go_package = "./Tls13Parser";
 // The service definition.
 service TlsParser {
   // A simple RPC that sends a greeting.
-  rpc SayHello (HandshakeRequest) returns (HandshakeResponse) {}
+  rpc Handshake (HandshakeRequest) returns (HandshakeResponse) {}
 }
 
 // The request message containing the user's name.

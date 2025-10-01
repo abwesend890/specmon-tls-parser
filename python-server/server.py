@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # server.py
 import grpc
 from concurrent import futures
@@ -14,7 +16,7 @@ import tls13_parser
 
 
 class TlsParserServicer(tls13_pb2_grpc.TlsParserServicer):
-    def SayHello(self, request, context):
+    def Handshake(self, request, context):
         print(f"Received request with data: {request.data}")
         length_prefix = format(int(len(request.data) / 2), "x").zfill(4)
         # handshake message + TLS1.2 identification
