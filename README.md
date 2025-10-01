@@ -10,3 +10,18 @@ You can install the protobuf compiler with the following command:
 The following should be within your $PATH: `$(go env GOPATH)/bin`
 
 
+
+
+# GRPC example
+in `grpc/`, execute Make to generate the python files
+
+## Server
+execute `grpc/server.py`
+
+## Emulate Client 
+```
+grpcurl \
+  -plaintext \
+  -d '{"data": "040000350000012cb2e84fd00800000000000000000020078ce471076e6fcf8a8cbce7d3ef876bd01c1caeccded1fa1e722ffe3946821b000016"}' \
+  localhost:50051 Tls13Parser.TlsParser.Handshake
+```
