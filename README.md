@@ -11,7 +11,6 @@ The following should be within your $PATH: `$(go env GOPATH)/bin`
 
 
 
-
 # GRPC example
 in `grpc/`, execute Make to generate the python files
 
