@@ -11,7 +11,7 @@ start:
 		echo "\033[0;31mServer is already running with PID: $$(cat $(PIDFILE))\033[0m"; \
 		exit 1; \
 	fi
-	@echo "\033[0;32mStarting server...\033[0m"
+	@echo "\033[0;32mStarting server..., logging to './server.log'\033[0m"
 	@python server.py > server.log & echo $$! > $(PIDFILE)
 	@echo "\033[0;32mServer started with PID: $$(cat $(PIDFILE))\033[0m"
 
