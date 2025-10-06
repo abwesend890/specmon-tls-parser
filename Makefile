@@ -5,7 +5,7 @@ install-environment:
 
 shell:
 	@echo "\033[0;32mEntering environment. Type 'exit' to leave...\033[0m"
-	pipenv shell
+	pipenv shell | true
 
 build-python-server: install-environment
 	@echo "\033[0;32mbuilding python grpc files...\033[0m"
