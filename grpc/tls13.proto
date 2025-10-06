@@ -7,13 +7,11 @@ option go_package = "./Tls13Parser";
 
 // The service definition.
 service TlsParser {
-  // A simple RPC that sends a greeting.
   rpc Handshake (HandshakeRequest) returns (HandshakeResponse) {}
 }
 
-// The request message containing the user's name.
 message HandshakeRequest {
-  string data = 1;
+  bytes data = 1;
 }
 
 message HandshakeResponse {
