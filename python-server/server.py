@@ -20,7 +20,7 @@ import tls13_parser
 
 class TlsParserServicer(tls13_pb2_grpc.TlsParserServicer):
     def Handshake(self, request, context):
-        print(f"Received request with data: {request.data}")
+        logger.info(f"Received request with data: {request.data}")
         length_prefix = format(int(len(request.data) / 2), "x").zfill(4)
         # handshake message + TLS1.2 identification
         handshake_prefix = "16" + "0303" + length_prefix
@@ -53,7 +53,7 @@ def serve():
 
     reflection.enable_server_reflection(SERVICE_NAMES, server)
 
-    print("Starting server. Listening on port 50051. Reflection is enabled.")
+    logger.info("Starting server. Listening on port 50051. Reflection is enabled.")
     server.add_insecure_port("[::]:50051")
     server.start()
 
