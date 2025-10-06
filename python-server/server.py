@@ -5,6 +5,9 @@ import grpc
 from concurrent import futures
 import time
 
+from loguru import logger
+import utils.logging_config  # noqa: F401
+
 from grpc_reflection.v1alpha import reflection
 
 from scapy.layers.tls.handshake import TLS13NewSessionTicket
