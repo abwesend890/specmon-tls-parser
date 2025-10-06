@@ -23,11 +23,11 @@ class TlsParserServicer(tls13_pb2_grpc.TlsParserServicer):
         logger.info(f"Received request with data: {request.data}")
         length_prefix = format(int(len(request.data) / 2), "x").zfill(4)
         # handshake message + TLS1.2 identification
-        handshake_prefix = "16" + "0303" + length_prefix
-        prefixed_request_data = handshake_prefix + request.data
+        # handshake_prefix = bytes.fromhex("16" + "0303" + length_prefix)
+        # prefixed_request_data = handshake_prefix + request.data
         try:
             parsed_data: TLS13NewSessionTicket = tls13_parser.parse_tls13(
-                prefixed_request_data
+                request.data
             )
             parsed_as_dict = dict(parsed_data[1][0].fields)
             for key in ["msgtype", "msglen", "noncelen", "ticketlen", "extlen", "ext"]:
