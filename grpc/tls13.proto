@@ -5,7 +5,6 @@ syntax = "proto3";
 package Tls13Parser;
 option go_package = "./Tls13Parser";
 
-// The service definition.
 service TlsParser {
   rpc Handshake (HandshakeRequest) returns (HandshakeResponse) {}
 }
@@ -37,3 +36,6 @@ message NewSessionTicket {
   repeated Extension extensions = 5;
 }
 
+// ---------------------------------------
+// --------- END TLS13 section
+// ---------------------------------------
