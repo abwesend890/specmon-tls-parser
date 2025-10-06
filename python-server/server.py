@@ -62,6 +62,9 @@ def serve():
             time.sleep(86400)
     except KeyboardInterrupt:
         server.stop(0)
+    except Exception as e:
+        logger.exception("Unexpected exception occurred: %s", e)
+        server.stop(1)
 
 
 if __name__ == "__main__":
