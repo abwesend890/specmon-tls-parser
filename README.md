@@ -1,5 +1,5 @@
 # Build
-use `make build`
+Use `make build`. This especially compiles the protobuf files used by the python server.
 
 ## requirements
 ### packages
