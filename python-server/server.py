@@ -98,13 +98,15 @@ class TlsParserServicer(tls13_pb2_grpc.TlsParserServicer):
             # parsed_as_dict = dict(parsed_data[1][0].fields)
             return _handle_Handshake(parsed_data)
 
+        except AssertionError as e:
+            logger.exception(e)
+            raise e
         except Exception as e:
-            logger.error("Parser encountered error with type: " + str(type(e)))
             logger.error(f"Error parsing {request.data}; error: {e}")
+            logger.exception(e)
             context.set_code(grpc.StatusCode.INTERNAL)
             context.set_details(f"An error occurred: {e}")
             raise e
-            # return tls13_pb2.HandshakeResponse()
 
 
 def serve():
