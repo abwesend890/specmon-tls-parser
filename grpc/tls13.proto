@@ -48,12 +48,22 @@ message HandshakeResponse {
 message Handshake {
   oneof payload {
     NewSessionTicket new_session_ticket = 1;
+    ClientHello client_hello = 2;
   }
 }
 
 message Extension {
   uint32 type = 1;
   bytes data = 2;
+}
+
+message ClientHello {
+  uint32 legacy_version = 1;
+  bytes random = 2;
+  bytes legacy_session_id = 3;
+  repeated uint32 cipher_suites = 4;
+  bytes legacy_compression_methods = 5;
+  repeated Extension extensions = 6;
 }
 
 message NewSessionTicket {

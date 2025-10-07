@@ -12,23 +12,22 @@ TLS13_HANDSHAKES = {
     # later: if TLS1.2 and TLS1.3 differs in record structure, add those here.
 }
 
+
 def parse_tls13(data: bytes | str):
     if isinstance(data, bytes):
         pass
     if isinstance(data, str):
         data = bytes.fromhex(data)
 
-
     record: TLS = TLS(data)
     parsed = []
-    for m in record.msg:
+    for m, r in zip(record.msg, record.raw_packet_cache_fields["msg"]):
         if isinstance(m, _TLSHandshake):
             cls = TLS13_HANDSHAKES.get(m.msgtype)
-            parsed.append(cls(m.original) if cls else m)
+            parsed.append(dict(parsed=cls(m.original) if cls else m, raw=r))
         else:
             parsed.append(m)
     return record, parsed
-
 
 
 # if __name__ == '__main__':
