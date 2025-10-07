@@ -43,8 +43,8 @@ def parse_tls13(data: bytes | str):
             cls = TLS13_HANDSHAKES.get(m.msgtype)
             parsed.append(cls(m.original) if cls else m)
         else:
-            logger.error("NOT IMPLEMENTED RECORD TYPE?")
-            parsed.append(m)
+            raise NotImplementedError
+            # parsed.append(m)
     return parsed
 
 

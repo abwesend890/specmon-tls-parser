@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from typing import Union
 
 # server.py
 import grpc
@@ -13,29 +14,46 @@ from grpc_reflection.v1alpha import reflection
 # from scapy.layers.tls.handshake import TLSClientHello, TLS13NewSessionTicket
 import scapy
 
+from scapy.layers.tls.handshake import (
+    TLS13ClientHello,
+    TLS13ServerHello,
+    TLS13NewSessionTicket,
+    TLS13Certificate,
+    TLS13CertificateRequest,
+    TLS13KeyUpdate,
+    TLS13EndOfEarlyData,
+)
+
 # Import the generated classes
 import tls13_pb2, tls13_pb2_grpc
 
 import tls13_parser
 
 
-def _handle_Handshake(parsed_raw):
-    assert len(parsed_raw) == 2
-    assert len(parsed_raw[1]) == 1
-    parsed = parsed_raw[1][0]
+def _handle_handshake(
+    parsed: Union[
+        TLS13ClientHello
+        | TLS13ServerHello
+        | TLS13NewSessionTicket
+        | TLS13Certificate
+        | TLS13CertificateRequest
+        | TLS13KeyUpdate
+        | TLS13EndOfEarlyData
+    ],
+):
     logger.debug(f"In handle Handshake with type {type(parsed)}")
     parsed_fields = parsed.fields
 
     general_unwanted_fields = ["msgtype", "msglen"]
     #  NEW SESSION TICKET
-    if isinstance(parsed, scapy.layers.tls.handshake.TLS13NewSessionTicket):
+    if isinstance(parsed, TLS13NewSessionTicket):
         for key in general_unwanted_fields + ["noncelen", "ticketlen", "extlen", "ext"]:
             if key in parsed_fields:
                 del parsed_fields[key]
         response_dict = dict(handshake=dict(new_session_ticket=dict(parsed_fields)))
         return tls13_pb2.HandshakeResponse(**response_dict)
 
-    if isinstance(parsed, scapy.layers.tls.handshake.TLSClientHello):
+    if isinstance(parsed, TLS13ClientHello):
         #   uint32 legacy_version = 1;
         #   bytes random = 2;
         #   bytes legacy_session_id = 3;
@@ -62,7 +80,7 @@ def _handle_Handshake(parsed_raw):
         response_dict = dict(handshake=dict(client_hello=dict(values)))
         return tls13_pb2.HandshakeResponse(**response_dict)
 
-    raise NotImplementedError
+    raise NotImplementedError(f"handling of {type(parsed)} is not implemented")
 
 
 class TlsParserServicer(tls13_pb2_grpc.TlsParserServicer):
@@ -92,11 +110,16 @@ class TlsParserServicer(tls13_pb2_grpc.TlsParserServicer):
         # )
 
         try:
-            logger.debug("Sending data to scapy TLS Parser")
             parsed_data = tls13_parser.parse_tls13(data)
-            logger.debug(f"Received parsed data: {parsed_data}")
+            if len(parsed_data) != 1:
+                raise NotImplementedError(
+                    "Attempting to parse exactly 1 message, else we'd need to return a list"
+                )
+            parsed_data = parsed_data[0]
+            # str() returns a byte object on parsed_data
+            logger.debug(f"Received parsed data: {parsed_data.__str__().hex()}")
             # parsed_as_dict = dict(parsed_data[1][0].fields)
-            return _handle_Handshake(parsed_data)
+            return _handle_handshake(parsed_data)
 
         except AssertionError as e:
             logger.exception(e)
