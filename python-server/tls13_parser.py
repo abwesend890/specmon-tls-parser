@@ -1,5 +1,16 @@
+from loguru import logger
+
+# from scapy.layers.tls.record_tls13 import TLS13
 from scapy.layers.tls.record import TLS
-from scapy.layers.tls.handshake import TLS13NewSessionTicket
+from scapy.layers.tls.handshake import (
+    TLS13ClientHello,
+    TLS13ServerHello,
+    TLS13NewSessionTicket,
+    TLS13Certificate,
+    TLS13CertificateRequest,
+    TLS13KeyUpdate,
+    TLS13EndOfEarlyData,
+)
 
 # _TLSHandshake is protected, but we need to perform an instance check on this class
 # noinspection PyProtectedMember
@@ -8,7 +19,13 @@ from scapy.layers.tls.handshake import _TLSHandshake
 # on a per-record basis, the default behavior can not distinguish between TLS12 and TLS13
 # thus we need to define TLS13 classes to be used manually
 TLS13_HANDSHAKES = {
+    1: TLS13ClientHello,
+    2: TLS13ServerHello,
     4: TLS13NewSessionTicket,
+    5: TLS13EndOfEarlyData,
+    11: TLS13Certificate,
+    13: TLS13CertificateRequest,
+    24: TLS13KeyUpdate,
     # later: if TLS1.2 and TLS1.3 differs in record structure, add those here.
 }
 
@@ -21,13 +38,14 @@ def parse_tls13(data: bytes | str):
 
     record: TLS = TLS(data)
     parsed = []
-    for m, r in zip(record.msg, record.raw_packet_cache_fields["msg"]):
+    for m in record.msg:
         if isinstance(m, _TLSHandshake):
             cls = TLS13_HANDSHAKES.get(m.msgtype)
-            parsed.append(dict(parsed=cls(m.original) if cls else m, raw=r))
+            parsed.append(cls(m.original) if cls else m)
         else:
+            logger.error("NOT IMPLEMENTED RECORD TYPE?")
             parsed.append(m)
-    return record, parsed
+    return parsed
 
 
 # if __name__ == '__main__':
