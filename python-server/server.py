@@ -66,8 +66,9 @@ def _handle_handshake(
             dict(type=extension.fields["type"], data=extension.fields)
             for extension in ext
         ]
+
         # I ONLY WANT THE BYTESTIRNGS FROM THE REQUEST :(
-        scapy.layers.tls.extensions
+        # we get it with str() or .original from the class :)
 
         values = dict(
             legacy_version=parsed_fields["version"],
