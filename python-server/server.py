@@ -93,7 +93,7 @@ class TlsParserServicer(tls13_pb2_grpc.TlsParserServicer):
 
         try:
             logger.debug("Sending data to scapy TLS Parser")
-            parsed_data, raw_data = tls13_parser.parse_tls13(data)
+            parsed_data = tls13_parser.parse_tls13(data)
             logger.debug(f"Received parsed data: {parsed_data}")
             # parsed_as_dict = dict(parsed_data[1][0].fields)
             return _handle_Handshake(parsed_data)
