@@ -42,15 +42,12 @@ message HandshakeRequest {
 }
 
 message HandshakeResponse {
-  Handshake handshake  = 1;
-}
-
-message Handshake {
   oneof payload {
     NewSessionTicket new_session_ticket = 1;
     ClientHello client_hello = 2;
   }
 }
+
 
 message Extension {
   uint32 type = 1;
@@ -67,8 +64,8 @@ message ClientHello {
 }
 
 message NewSessionTicket {
-  uint32 ticket_lifetime = 1;
-  uint32 ticket_age_add = 2;
+  bytes ticket_lifetime = 1;
+  bytes ticket_age_add = 2;
   bytes ticket_nonce = 3;
   bytes ticket = 4;
   repeated Extension extensions = 5;

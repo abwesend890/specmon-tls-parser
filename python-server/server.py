@@ -8,7 +8,7 @@ import time
 
 from loguru import logger
 import utils.logging_config  # noqa: F401
-
+from utils.conversions import int_to_bytes
 from grpc_reflection.v1alpha import reflection
 
 # from scapy.layers.tls.handshake import TLSClientHello, TLS13NewSessionTicket
@@ -30,6 +30,29 @@ import tls13_pb2, tls13_pb2_grpc
 import tls13_parser
 
 
+def _parse_field(parsed, field, WHITELIST):
+    logger.debug(f"value of {field.name}: {getattr(parsed, field.name)}")
+    if not field.name in WHITELIST:
+        logger.warning(
+            f"Not including attribute '{field.name}' of {type(parsed)} in response."
+        )
+        return None, None
+
+    value = getattr(parsed, field.name)
+    if isinstance(value, bytes):
+        pass
+    elif isinstance(value, int):
+        old_value = value
+        value: bytes = int_to_bytes(value)
+        logger.debug(f"Converted int to bytes: {old_value} -> {value.hex()}")
+    else:
+        raise NotImplementedError(
+            "Not implemented return type. Need conversion to bytes"
+        )
+    # answer[field.name] = value
+    return field.name, value
+
+
 def _handle_handshake(
     parsed: Union[
         TLS13ClientHello
@@ -47,10 +70,15 @@ def _handle_handshake(
     general_unwanted_fields = ["msgtype", "msglen"]
     #  NEW SESSION TICKET
     if isinstance(parsed, TLS13NewSessionTicket):
-        for key in general_unwanted_fields + ["noncelen", "ticketlen", "extlen", "ext"]:
-            if key in parsed_fields:
-                del parsed_fields[key]
-        response_dict = dict(handshake=dict(new_session_ticket=dict(parsed_fields)))
+        WHITELIST = ["ticket_lifetime", "ticket_age_add", "ticket_nonce", "ticket"]
+        answer = dict()
+        for field in parsed.fields_desc:
+            key, value = _parse_field(parsed, field, WHITELIST)
+            if key is None:
+                continue
+            answer[key] = value
+
+        response_dict = dict(new_session_ticket=answer)
         return tls13_pb2.HandshakeResponse(**response_dict)
 
     if isinstance(parsed, TLS13ClientHello):
