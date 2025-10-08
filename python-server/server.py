@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import struct
+from http.client import responses
 from typing import Union
 
 # server.py
@@ -14,6 +16,7 @@ from grpc_reflection.v1alpha import reflection
 # from scapy.layers.tls.handshake import TLSClientHello, TLS13NewSessionTicket
 import scapy
 
+from scapy.layers.tls.extensions import TLS_Ext_Unknown
 from scapy.layers.tls.handshake import (
     TLS13ClientHello,
     TLS13ServerHello,
@@ -30,27 +33,42 @@ import tls13_pb2, tls13_pb2_grpc
 import tls13_parser
 
 
-def _parse_field(parsed, field, WHITELIST):
-    logger.debug(f"value of {field.name}: {getattr(parsed, field.name)}")
-    if not field.name in WHITELIST:
-        logger.warning(
-            f"Not including attribute '{field.name}' of {type(parsed)} in response."
-        )
-        return None, None
-
-    value = getattr(parsed, field.name)
+def _format_field_value(field, value):
     if isinstance(value, bytes):
-        pass
+        return value
     elif isinstance(value, int):
-        old_value = value
-        value: bytes = int_to_bytes(value)
-        logger.debug(f"Converted int to bytes: {old_value} -> {value.hex()}")
-    else:
-        raise NotImplementedError(
-            "Not implemented return type. Need conversion to bytes"
-        )
-    # answer[field.name] = value
-    return field.name, value
+        return field.struct.pack(value)
+    elif isinstance(value, list):
+        if all(isinstance(item, int) for item in value):
+            return b"".join(map(lambda x: field.struct.pack(x), value))
+        if all(isinstance(item, TLS_Ext_Unknown) for item in value):
+            return b"".join(map(lambda x: x.original, value))
+
+    raise NotImplementedError(
+        f"Not implemented return type: {type(value)}. Need conversion to bytes"
+    )
+
+
+def _get_field_value(parsed, field) -> bytes:
+    logger.debug(f"value of {field.name}: {getattr(parsed, field.name)}")
+    value = getattr(parsed, field.name)
+    return _format_field_value(field, value)
+
+
+def _format_fields(parsed, of_interest_mapping: dict):
+    answer = dict()
+    for field in parsed.fields_desc:
+        if not field.name in of_interest_mapping.keys():
+            logger.warning(
+                f"Not including attribute '{field.name}' of {type(parsed)} in response. Would be '{_get_field_value(parsed, field)}'"
+            )
+            continue
+        value = _get_field_value(parsed, field)
+        assert (
+            value in parsed.original
+        ), f"constructed value {value} not found in original {parsed.original}"
+        answer[of_interest_mapping[field.name]] = value
+    return answer
 
 
 def _handle_handshake(
@@ -70,14 +88,13 @@ def _handle_handshake(
     general_unwanted_fields = ["msgtype", "msglen"]
     #  NEW SESSION TICKET
     if isinstance(parsed, TLS13NewSessionTicket):
-        WHITELIST = ["ticket_lifetime", "ticket_age_add", "ticket_nonce", "ticket"]
-        answer = dict()
-        for field in parsed.fields_desc:
-            key, value = _parse_field(parsed, field, WHITELIST)
-            if key is None:
-                continue
-            answer[key] = value
-
+        of_interest_scapy_mapping = dict(
+            ticket_lifetime="ticket_lifetime",
+            ticket_age_add="ticket_age_add",
+            ticket_nonce="ticket_nonce",
+            ticket="ticket",
+        )
+        answer = _format_fields(parsed, of_interest_scapy_mapping)
         response_dict = dict(new_session_ticket=answer)
         return tls13_pb2.HandshakeResponse(**response_dict)
 
@@ -89,24 +106,32 @@ def _handle_handshake(
         #   bytes legacy_compression_methods = 5;
         #   repeated Extension extensions = 6;
 
-        ext = parsed.ext["ext"]
-        ext_fields = [
-            dict(type=extension.fields["type"], data=extension.fields)
-            for extension in ext
-        ]
+        # ext = parsed.ext["ext"]
+        # ext_fields = [
+        #     dict(type=extension.fields["type"], data=extension.fields)
+        #     for extension in ext
+        # ]
 
-        # I ONLY WANT THE BYTESTIRNGS FROM THE REQUEST :(
-        # we get it with str() or .original from the class :)
+        # values = dict(
+        #     legacy_version=parsed_fields["version"],
+        #     random=parsed_fields["random_bytes"],
+        #     legacy_session_id=parsed_fields["sid"],
+        #     legacy_compression_methods=parsed_fields["comp"],
+        #     extensions=parsed_fields["ext"],
+        # )
 
-        values = dict(
-            legacy_version=parsed_fields["version"],
-            random=parsed_fields["random_bytes"],
-            legacy_session_id=parsed_fields["sid"],
-            legacy_compression_methods=parsed_fields["comp"],
-            extensions=parsed_fields["ext"],
+        # response_dict = dict(handshake=dict(client_hello=dict(values)))
+
+        of_interest_scapy_mapping = dict(
+            version="legacy_version",
+            random_bytes="random",
+            sid="legacy_session_id",
+            comp="legacy_compression_methods",
+            ext="extensions",
         )
 
-        response_dict = dict(handshake=dict(client_hello=dict(values)))
+        answer = _format_fields(parsed, of_interest_scapy_mapping)
+        response_dict = dict(client_hello=answer)
         return tls13_pb2.HandshakeResponse(**response_dict)
 
     raise NotImplementedError(f"handling of {type(parsed)} is not implemented")

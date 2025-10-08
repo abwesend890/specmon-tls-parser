@@ -1,5 +1,7 @@
 def int_to_bytes(n: int) -> bytes:
     """Converts an integer to bytes via hex string manipulation."""
+    if not isinstance(n, int):
+        raise ValueError("Input must be an integer")
     if n < 0:
         raise ValueError("This method only supports non-negative integers.")
     hex_string = hex(n)[2:]

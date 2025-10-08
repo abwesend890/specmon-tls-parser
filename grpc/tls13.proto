@@ -55,12 +55,12 @@ message Extension {
 }
 
 message ClientHello {
-  uint32 legacy_version = 1;
+  bytes legacy_version = 1;
   bytes random = 2;
   bytes legacy_session_id = 3;
-  repeated uint32 cipher_suites = 4;
+  bytes cipher_suites = 4;
   bytes legacy_compression_methods = 5;
-  repeated Extension extensions = 6;
+  bytes extensions = 6;
 }
 
 message NewSessionTicket {
