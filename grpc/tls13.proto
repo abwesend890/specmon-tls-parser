@@ -45,13 +45,12 @@ message HandshakeResponse {
   oneof payload {
     NewSessionTicket new_session_ticket = 1;
     ClientHello client_hello = 2;
+    ChangeCipherSpec change_cipher_spec = 3;
   }
 }
 
-
-message Extension {
-  uint32 type = 1;
-  bytes data = 2;
+message ChangeCipherSpec {
+  bytes change_cipher_spec = 1;
 }
 
 message ClientHello {
@@ -68,7 +67,7 @@ message NewSessionTicket {
   bytes ticket_age_add = 2;
   bytes ticket_nonce = 3;
   bytes ticket = 4;
-  repeated Extension extensions = 5;
+  bytes extensions = 5;
 }
 
 // ---------------------------------------

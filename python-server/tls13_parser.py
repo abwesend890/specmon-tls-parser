@@ -1,7 +1,9 @@
+from typing import Union
+
 from loguru import logger
 
 # from scapy.layers.tls.record_tls13 import TLS13
-from scapy.layers.tls.record import TLS
+from scapy.layers.tls.record import TLS, TLSChangeCipherSpec
 from scapy.layers.tls.handshake import (
     TLS13ClientHello,
     TLS13ServerHello,
@@ -42,6 +44,8 @@ def parse_tls13(data: bytes | str):
         if isinstance(m, _TLSHandshake):
             cls = TLS13_HANDSHAKES.get(m.msgtype)
             parsed.append(cls(m.original) if cls else m)
+        elif isinstance(m, Union[TLSChangeCipherSpec | TLS13ClientHello]):
+            parsed.append(m)
         else:
             raise NotImplementedError
             # parsed.append(m)

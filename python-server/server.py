@@ -9,6 +9,8 @@ from concurrent import futures
 import time
 
 from loguru import logger
+from scapy.layers.tls.record import TLSChangeCipherSpec
+
 import utils.logging_config  # noqa: F401
 from utils.conversions import int_to_bytes
 from grpc_reflection.v1alpha import reflection
@@ -99,29 +101,6 @@ def _handle_handshake(
         return tls13_pb2.HandshakeResponse(**response_dict)
 
     if isinstance(parsed, TLS13ClientHello):
-        #   uint32 legacy_version = 1;
-        #   bytes random = 2;
-        #   bytes legacy_session_id = 3;
-        #   repeated uint32 cipher_suites = 4;
-        #   bytes legacy_compression_methods = 5;
-        #   repeated Extension extensions = 6;
-
-        # ext = parsed.ext["ext"]
-        # ext_fields = [
-        #     dict(type=extension.fields["type"], data=extension.fields)
-        #     for extension in ext
-        # ]
-
-        # values = dict(
-        #     legacy_version=parsed_fields["version"],
-        #     random=parsed_fields["random_bytes"],
-        #     legacy_session_id=parsed_fields["sid"],
-        #     legacy_compression_methods=parsed_fields["comp"],
-        #     extensions=parsed_fields["ext"],
-        # )
-
-        # response_dict = dict(handshake=dict(client_hello=dict(values)))
-
         of_interest_scapy_mapping = dict(
             version="legacy_version",
             random_bytes="random",
@@ -132,6 +111,12 @@ def _handle_handshake(
 
         answer = _format_fields(parsed, of_interest_scapy_mapping)
         response_dict = dict(client_hello=answer)
+        return tls13_pb2.HandshakeResponse(**response_dict)
+
+    if isinstance(parsed, TLSChangeCipherSpec):
+        of_interest_scapy_mapping = dict(msgtype="change_cipher_spec")
+        answer = _format_fields(parsed, of_interest_scapy_mapping)
+        response_dict = dict(change_cipher_spec=answer)
         return tls13_pb2.HandshakeResponse(**response_dict)
 
     raise NotImplementedError(f"handling of {type(parsed)} is not implemented")
