@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import struct
 from http.client import responses
-from typing import Union
+from typing import Union, List
 
 # server.py
 import grpc
@@ -9,7 +9,7 @@ from concurrent import futures
 import time
 
 from loguru import logger
-from scapy.layers.tls.record import TLSChangeCipherSpec
+from scapy.layers.tls.record import TLSChangeCipherSpec, TLSApplicationData
 
 import utils.logging_config  # noqa: F401
 from utils.conversions import int_to_bytes
@@ -74,52 +74,70 @@ def _format_fields(parsed, of_interest_mapping: dict):
 
 
 def _handle_handshake(
-    parsed: Union[
-        TLS13ClientHello
-        | TLS13ServerHello
-        | TLS13NewSessionTicket
-        | TLS13Certificate
-        | TLS13CertificateRequest
-        | TLS13KeyUpdate
-        | TLS13EndOfEarlyData
+    parsed_list: List[
+        Union[
+            TLS13ClientHello
+            | TLS13ServerHello
+            | TLS13NewSessionTicket
+            | TLS13Certificate
+            | TLS13CertificateRequest
+            | TLS13KeyUpdate
+            | TLS13EndOfEarlyData
+        ]
     ],
 ):
-    logger.debug(f"In handle Handshake with type {type(parsed)}")
-    parsed_fields = parsed.fields
+    response_dict = dict()
+    for parsed in parsed_list:
+        logger.debug(f"In handle Handshake with type {type(parsed)}")
+        parsed_fields = parsed.fields
 
-    general_unwanted_fields = ["msgtype", "msglen"]
-    #  NEW SESSION TICKET
-    if isinstance(parsed, TLS13NewSessionTicket):
-        of_interest_scapy_mapping = dict(
-            ticket_lifetime="ticket_lifetime",
-            ticket_age_add="ticket_age_add",
-            ticket_nonce="ticket_nonce",
-            ticket="ticket",
-        )
-        answer = _format_fields(parsed, of_interest_scapy_mapping)
-        response_dict = dict(new_session_ticket=answer)
-        return tls13_pb2.HandshakeResponse(**response_dict)
+        general_unwanted_fields = ["msgtype", "msglen"]
+        #  NEW SESSION TICKET
+        if isinstance(parsed, TLS13NewSessionTicket):
+            of_interest_scapy_mapping = dict(
+                ticket_lifetime="ticket_lifetime",
+                ticket_age_add="ticket_age_add",
+                ticket_nonce="ticket_nonce",
+                ticket="ticket",
+            )
+            answer = _format_fields(parsed, of_interest_scapy_mapping)
+            response_dict["new_session_ticket"] = answer
+            # response_dict = dict(new_session_ticket=answer)
+            # return tls13_pb2.HandshakeResponse(**response_dict)
+            continue
 
-    if isinstance(parsed, TLS13ClientHello):
-        of_interest_scapy_mapping = dict(
-            version="legacy_version",
-            random_bytes="random",
-            sid="legacy_session_id",
-            comp="legacy_compression_methods",
-            ext="extensions",
-        )
+        if isinstance(parsed, TLS13ClientHello):
+            of_interest_scapy_mapping = dict(
+                version="legacy_version",
+                random_bytes="random",
+                sid="legacy_session_id",
+                comp="legacy_compression_methods",
+                ext="extensions",
+            )
 
-        answer = _format_fields(parsed, of_interest_scapy_mapping)
-        response_dict = dict(client_hello=answer)
-        return tls13_pb2.HandshakeResponse(**response_dict)
+            answer = _format_fields(parsed, of_interest_scapy_mapping)
+            response_dict["client_hello"] = answer
+            # response_dict = dict(client_hello=answer)
+            # return tls13_pb2.HandshakeResponse(**response_dict)
+            continue
 
-    if isinstance(parsed, TLSChangeCipherSpec):
-        of_interest_scapy_mapping = dict(msgtype="change_cipher_spec")
-        answer = _format_fields(parsed, of_interest_scapy_mapping)
-        response_dict = dict(change_cipher_spec=answer)
-        return tls13_pb2.HandshakeResponse(**response_dict)
+        if isinstance(parsed, TLSChangeCipherSpec):
+            of_interest_scapy_mapping = dict(msgtype="change_cipher_spec")
+            answer = _format_fields(parsed, of_interest_scapy_mapping)
+            response_dict["change_cipher_spec"] = answer
+            # response_dict = dict(change_cipher_spec=answer)
+            # return tls13_pb2.HandshakeResponse(**response_dict)
+            continue
 
-    raise NotImplementedError(f"handling of {type(parsed)} is not implemented")
+        if isinstance(parsed, TLSApplicationData):
+            of_interest_scapy_mapping = dict(data="application_data")
+            answer = _format_fields(parsed, of_interest_scapy_mapping)
+            response_dict["application_data"] = answer
+            # response_dict = dict(application_data=answer)
+            continue
+
+        raise NotImplementedError(f"handling of {type(parsed)} is not implemented")
+    return tls13_pb2.HandshakeResponse(**response_dict)
 
 
 class TlsParserServicer(tls13_pb2_grpc.TlsParserServicer):
@@ -150,13 +168,13 @@ class TlsParserServicer(tls13_pb2_grpc.TlsParserServicer):
 
         try:
             parsed_data = tls13_parser.parse_tls13(data)
-            if len(parsed_data) != 1:
-                raise NotImplementedError(
-                    "Attempting to parse exactly 1 message, else we'd need to return a list"
-                )
-            parsed_data = parsed_data[0]
+            # if len(parsed_data) != 1:
+            #     raise NotImplementedError(
+            #         "Attempting to parse exactly 1 message, else we'd need to return a list"
+            #     )
+            # parsed_data = parsed_data[0]
             # str() returns a byte object on parsed_data
-            logger.debug(f"Received parsed data: {parsed_data.__str__().hex()}")
+            # logger.debug(f"Received parsed data: {parsed_data.__str__().hex()}")
             # parsed_as_dict = dict(parsed_data[1][0].fields)
             return _handle_handshake(parsed_data)
 

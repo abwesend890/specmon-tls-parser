@@ -46,7 +46,12 @@ message HandshakeResponse {
     NewSessionTicket new_session_ticket = 1;
     ClientHello client_hello = 2;
     ChangeCipherSpec change_cipher_spec = 3;
+    ApplicationData application_data = 4;
   }
+}
+
+message ApplicationData {
+  bytes application_data = 1;
 }
 
 message ChangeCipherSpec {

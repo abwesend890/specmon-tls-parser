@@ -1,9 +1,9 @@
 from typing import Union
-
+from utils.conversions import flatten
 from loguru import logger
 
 # from scapy.layers.tls.record_tls13 import TLS13
-from scapy.layers.tls.record import TLS, TLSChangeCipherSpec
+from scapy.layers.tls.record import TLS, TLSChangeCipherSpec, TLSApplicationData
 from scapy.layers.tls.handshake import (
     TLS13ClientHello,
     TLS13ServerHello,
@@ -17,6 +17,7 @@ from scapy.layers.tls.handshake import (
 # _TLSHandshake is protected, but we need to perform an instance check on this class
 # noinspection PyProtectedMember
 from scapy.layers.tls.handshake import _TLSHandshake
+from scapy.packet import NoPayload
 
 # on a per-record basis, the default behavior can not distinguish between TLS12 and TLS13
 # thus we need to define TLS13 classes to be used manually
@@ -44,11 +45,16 @@ def parse_tls13(data: bytes | str):
         if isinstance(m, _TLSHandshake):
             cls = TLS13_HANDSHAKES.get(m.msgtype)
             parsed.append(cls(m.original) if cls else m)
-        elif isinstance(m, Union[TLSChangeCipherSpec | TLS13ClientHello]):
+        elif isinstance(
+            m, Union[TLSChangeCipherSpec | TLS13ClientHello | TLSApplicationData]
+        ):
             parsed.append(m)
         else:
             raise NotImplementedError
             # parsed.append(m)
+    if not isinstance(record.payload, NoPayload):
+        parsed.append(parse_tls13(record.payload.original))
+    parsed = flatten(parsed)
     return parsed
 
 
