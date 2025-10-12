@@ -51,8 +51,16 @@ message ParseResponseMessage {
     ClientHello client_hello = 2;
     ChangeCipherSpec change_cipher_spec = 3;
     ApplicationData application_data = 4;
+    ServerHello server_hello = 5;
+    Raw raw = 6;
   }
 }
+
+
+message Raw {
+  bytes load = 1;
+}
+
 
 message ApplicationData {
   bytes application_data = 1;
@@ -66,6 +74,15 @@ message ClientHello {
   bytes legacy_version = 1;
   bytes random = 2;
   bytes legacy_session_id = 3;
+  bytes cipher_suites = 4;
+  bytes legacy_compression_methods = 5;
+  bytes extensions = 6;
+}
+
+message ServerHello {
+  bytes legacy_version = 1;
+  bytes random = 2;
+  bytes legacy_session_id_echo = 3;
   bytes cipher_suites = 4;
   bytes legacy_compression_methods = 5;
   bytes extensions = 6;

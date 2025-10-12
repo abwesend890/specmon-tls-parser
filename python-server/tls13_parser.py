@@ -17,7 +17,7 @@ from scapy.layers.tls.handshake import (
 # _TLSHandshake is protected, but we need to perform an instance check on this class
 # noinspection PyProtectedMember
 from scapy.layers.tls.handshake import _TLSHandshake
-from scapy.packet import NoPayload
+from scapy.packet import NoPayload, Raw
 
 # on a per-record basis, the default behavior can not distinguish between TLS12 and TLS13
 # thus we need to define TLS13 classes to be used manually
@@ -46,7 +46,7 @@ def parse_tls13(data: bytes | str):
             cls = TLS13_HANDSHAKES.get(m.msgtype)
             parsed.append(cls(m.original) if cls else m)
         elif isinstance(
-            m, Union[TLSChangeCipherSpec | TLS13ClientHello | TLSApplicationData]
+            m, Union[TLSChangeCipherSpec | TLS13ClientHello | TLSApplicationData | Raw]
         ):
             parsed.append(m)
         else:

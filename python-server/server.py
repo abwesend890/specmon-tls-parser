@@ -10,6 +10,7 @@ import time
 
 from loguru import logger
 from scapy.layers.tls.record import TLSChangeCipherSpec, TLSApplicationData
+from scapy.packet import Raw
 
 import utils.logging_config  # noqa: F401
 from utils.conversions import int_to_bytes
@@ -111,6 +112,7 @@ def _handle_handshake(
             of_interest_scapy_mapping = dict(
                 version="legacy_version",
                 random_bytes="random",
+                ciphers="cipher_suites",
                 sid="legacy_session_id",
                 comp="legacy_compression_methods",
                 ext="extensions",
@@ -137,6 +139,27 @@ def _handle_handshake(
             answer = _format_fields(parsed, of_interest_scapy_mapping)
             parse_response_message["application_data"] = answer
             # parse_response_message = dict(application_data=answer)
+            parse_response.append(parse_response_message)
+            continue
+
+        if isinstance(parsed, Raw):
+            of_interest_scapy_mapping = dict(load="load")
+            answer = _format_fields(parsed, of_interest_scapy_mapping)
+            parse_response_message["raw"] = answer
+            parse_response.append(parse_response_message)
+            continue
+
+        if isinstance(parsed, TLS13ServerHello):
+            of_interest_scapy_mapping = dict(
+                version="legacy_version",
+                random_bytes="random",
+                sid="legacy_session_id_echo",
+                cipher="cipher_suites",
+                comp="legacy_compression_methods",
+                ext="extensions",
+            )
+            answer = _format_fields(parsed, of_interest_scapy_mapping)
+            parse_response_message["server_hello"] = answer
             parse_response.append(parse_response_message)
             continue
 
