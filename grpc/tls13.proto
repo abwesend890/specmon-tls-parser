@@ -34,14 +34,18 @@ message SplitResponse {
 // ---------------------------------------
 
 service TlsParser {
-  rpc Handshake (HandshakeRequest) returns (HandshakeResponse) {}
+  rpc Parse (ParseRequest) returns (ParseResponse) {}
 }
 
-message HandshakeRequest {
+message ParseRequest {
   bytes data = 1;
 }
 
-message HandshakeResponse {
+message ParseResponse {
+  repeated ParseResponseMessage messages = 1;
+}
+
+message ParseResponseMessage {
   oneof payload {
     NewSessionTicket new_session_ticket = 1;
     ClientHello client_hello = 2;

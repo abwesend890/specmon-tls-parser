@@ -86,12 +86,12 @@ def _handle_handshake(
         ]
     ],
 ):
-    response_dict = dict()
-    for parsed in parsed_list:
-        logger.debug(f"In handle Handshake with type {type(parsed)}")
-        parsed_fields = parsed.fields
 
-        general_unwanted_fields = ["msgtype", "msglen"]
+    parse_response = list()
+    for parsed in parsed_list:
+        parse_response_message = dict()
+        logger.debug(f"In handle Handshake with type {type(parsed)}")
+
         #  NEW SESSION TICKET
         if isinstance(parsed, TLS13NewSessionTicket):
             of_interest_scapy_mapping = dict(
@@ -101,9 +101,10 @@ def _handle_handshake(
                 ticket="ticket",
             )
             answer = _format_fields(parsed, of_interest_scapy_mapping)
-            response_dict["new_session_ticket"] = answer
-            # response_dict = dict(new_session_ticket=answer)
-            # return tls13_pb2.HandshakeResponse(**response_dict)
+            parse_response_message["new_session_ticket"] = answer
+            parse_response.append(parse_response_message)
+            # parse_response_message = dict(new_session_ticket=answer)
+            # return tls13_pb2.ParseResponse(**parse_response_message)
             continue
 
         if isinstance(parsed, TLS13ClientHello):
@@ -116,28 +117,31 @@ def _handle_handshake(
             )
 
             answer = _format_fields(parsed, of_interest_scapy_mapping)
-            response_dict["client_hello"] = answer
-            # response_dict = dict(client_hello=answer)
-            # return tls13_pb2.HandshakeResponse(**response_dict)
+            parse_response_message["client_hello"] = answer
+            # parse_response_message = dict(client_hello=answer)
+            # return tls13_pb2.ParseResponse(**parse_response_message)
+            parse_response.append(parse_response_message)
             continue
 
         if isinstance(parsed, TLSChangeCipherSpec):
             of_interest_scapy_mapping = dict(msgtype="change_cipher_spec")
             answer = _format_fields(parsed, of_interest_scapy_mapping)
-            response_dict["change_cipher_spec"] = answer
-            # response_dict = dict(change_cipher_spec=answer)
-            # return tls13_pb2.HandshakeResponse(**response_dict)
+            parse_response_message["change_cipher_spec"] = answer
+            # parse_response_message = dict(change_cipher_spec=answer)
+            # return tls13_pb2.ParseResponse(**parse_response_message)
+            parse_response.append(parse_response_message)
             continue
 
         if isinstance(parsed, TLSApplicationData):
             of_interest_scapy_mapping = dict(data="application_data")
             answer = _format_fields(parsed, of_interest_scapy_mapping)
-            response_dict["application_data"] = answer
-            # response_dict = dict(application_data=answer)
+            parse_response_message["application_data"] = answer
+            # parse_response_message = dict(application_data=answer)
+            parse_response.append(parse_response_message)
             continue
 
         raise NotImplementedError(f"handling of {type(parsed)} is not implemented")
-    return tls13_pb2.HandshakeResponse(**response_dict)
+    return tls13_pb2.ParseResponse(**dict(messages=parse_response))
 
 
 class TlsParserServicer(tls13_pb2_grpc.TlsParserServicer):
@@ -148,7 +152,7 @@ class TlsParserServicer(tls13_pb2_grpc.TlsParserServicer):
         part1, part2 = data.split(pos)
         return tls13_pb2.SplitResponse(part1=part1, part2=part2)
 
-    def Handshake(self, request, context):
+    def Parse(self, request, context):
         logger.info(f"Received request with data: {request.data.hex()}")
 
         # prefix data in case we do not have equal number of bytes
