@@ -1,4 +1,8 @@
+from functools import lru_cache
 from typing import Union
+
+from scapy.main import load_layer
+
 from utils.conversions import flatten
 from loguru import logger
 
@@ -12,6 +16,7 @@ from scapy.layers.tls.handshake import (
     TLS13CertificateRequest,
     TLS13KeyUpdate,
     TLS13EndOfEarlyData,
+    TLS13HelloRetryRequest,
 )
 
 # _TLSHandshake is protected, but we need to perform an instance check on this class
@@ -29,18 +34,38 @@ TLS13_HANDSHAKES = {
     11: TLS13Certificate,
     13: TLS13CertificateRequest,
     24: TLS13KeyUpdate,
+    # 2: TLS13HelloRetryRequest,
     # later: if TLS1.2 and TLS1.3 differs in record structure, add those here.
 }
 
+load_layer("tls")
 
+from scapy.layers.tls.all import TLSSession
+
+global recent_session
+recent_session = None
+
+
+@lru_cache
 def parse_tls13(data: bytes | str):
     if isinstance(data, bytes):
         pass
     if isinstance(data, str):
         data = bytes.fromhex(data)
 
-    record: TLS = TLS(data)
+    global recent_session
+
+    if recent_session is not None:
+        record = TLS(
+            data,
+            tls_session=recent_session,
+        )
+    else:
+        record: TLS = TLS(data)
+    recent_session = record.tls_session
+
     parsed = []
+
     for m in record.msg:
         if isinstance(m, _TLSHandshake):
             cls = TLS13_HANDSHAKES.get(m.msgtype)

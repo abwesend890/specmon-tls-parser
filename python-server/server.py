@@ -28,6 +28,7 @@ from scapy.layers.tls.handshake import (
     TLS13CertificateRequest,
     TLS13KeyUpdate,
     TLS13EndOfEarlyData,
+    TLS13HelloRetryRequest,
 )
 
 # Import the generated classes
