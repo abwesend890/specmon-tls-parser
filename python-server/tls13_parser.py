@@ -1,6 +1,8 @@
+from enum import Enum
 from functools import lru_cache
-from typing import Union
+from typing import Union, List
 
+from scapy.layers.tls.session import TLSSession, _GenericTLSSessionInheritance
 from scapy.main import load_layer
 
 from utils.conversions import flatten
@@ -17,6 +19,7 @@ from scapy.layers.tls.handshake import (
     TLS13KeyUpdate,
     TLS13EndOfEarlyData,
     TLS13HelloRetryRequest,
+    TLSClientHello,
 )
 
 # _TLSHandshake is protected, but we need to perform an instance check on this class
@@ -40,47 +43,110 @@ TLS13_HANDSHAKES = {
 
 load_layer("tls")
 
-from scapy.layers.tls.all import TLSSession
 
-global recent_session
-recent_session = None
+class ContentType(Enum):
+    Unknown = 0
+    HelloRetryRequest = 1
+
+
+class TLSSessionParser:
+    """
+    A stateless parser for a single TLS stream that processes data in chunks.
+    """
+
+    def __init__(self):
+        # A buffer to hold data if a chunk doesn't contain a full TLS record.
+        self.buffer = b""
+
+    def _get_fixed_message(self, m):
+        if isinstance(m, _TLSHandshake):
+            cls = TLS13_HANDSHAKES.get(m.msgtype)
+            res = cls(m.original) if cls else m
+            return res
+        elif isinstance(
+            m,
+            Union[TLSChangeCipherSpec | TLS13ClientHello | TLSApplicationData | Raw],
+        ):
+            return m
+        else:
+            raise NotImplementedError
+
+    def parse_chunk(
+        self, data: bytes | str, known_content_type: ContentType
+    ) -> List[_GenericTLSSessionInheritance]:
+        """
+        Parses a new chunk of data from the stream.
+
+        Args:
+            data: The raw bytes (or hex string) of the new data chunk.
+            known_content_type: may indicate what we are parsing (e.g. HelloRetryRequest).
+                with the generic TLS() call, scapy 2.6.1 only returns a raw object
+
+        Returns:
+            A list of parsed Scapy TLS message objects from this chunk.
+        """
+        if isinstance(data, str):
+            data = bytes.fromhex(data)
+
+        # Add the new data to our internal buffer
+        self.buffer += data
+        parsed_in_chunk = []
+
+        # Keep parsing while there's data in the buffer
+        while self.buffer:
+            # Tell Scapy to use our persistent session object to continue the dissection.
+            # Scapy will update self.session internally.
+
+            # if known_content_type == ContentType.HelloRetryRequest:
+            #     record = TLS13HelloRetryRequest(self.buffer)
+            # elif known_content_type == ContentType.Unknown:
+            #     record = TLS(self.buffer)
+            # else:
+            #     raise NotImplementedError(
+            #         "Not implemented ContentType hint. Try generic API."
+            #     )
+
+            record = TLS(self.buffer)
+
+            # if we know the content type, we use the request from the first parsed attempt to strip the preamble
+            # the original bytes without the preamble are parsed as the content type
+            if known_content_type == ContentType.HelloRetryRequest:
+                record.msg[0] = TLS13HelloRetryRequest(record.msg[0].original)
+                # payload = record.msg[0].payload
+
+            # reset the content type in case we have another iteration (only designed for the first message currently)
+            known_content_type = ContentType.Unknown
+
+            # If Scapy couldn't parse a full record, the .msg list will be empty.
+            # We break the loop and wait for more data.
+            if not record.msg:
+                break
+
+            # at least for the TLS13NewSessionTicket we need to tell scapy that it is TLS13
+            parsed_fixed_classes = [self._get_fixed_message(m) for m in record.msg]
+
+            # Add the successfully parsed messages to our results
+            parsed_in_chunk.extend(parsed_fixed_classes)
+
+            # The unparsed part of the buffer is in the payload. This becomes
+            # our new buffer for the next iteration of the loop.
+            if isinstance(record.payload, NoPayload):
+                self.buffer = b""
+            else:
+                self.buffer = bytes(record.payload)
+
+        return flatten(parsed_in_chunk)
+
+
+tsp = TLSSessionParser()
 
 
 @lru_cache
-def parse_tls13(data: bytes | str):
-    if isinstance(data, bytes):
-        pass
-    if isinstance(data, str):
-        data = bytes.fromhex(data)
-
-    global recent_session
-
-    if recent_session is not None:
-        record = TLS(
-            data,
-            tls_session=recent_session,
-        )
-    else:
-        record: TLS = TLS(data)
-    recent_session = record.tls_session
-
-    parsed = []
-
-    for m in record.msg:
-        if isinstance(m, _TLSHandshake):
-            cls = TLS13_HANDSHAKES.get(m.msgtype)
-            parsed.append(cls(m.original) if cls else m)
-        elif isinstance(
-            m, Union[TLSChangeCipherSpec | TLS13ClientHello | TLSApplicationData | Raw]
-        ):
-            parsed.append(m)
-        else:
-            raise NotImplementedError
-            # parsed.append(m)
-    if not isinstance(record.payload, NoPayload):
-        parsed.append(parse_tls13(record.payload.original))
-    parsed = flatten(parsed)
-    return parsed
+def parse_tls13_cached(
+    data: bytes | str, known_content_type: ContentType = ContentType.Unknown
+) -> List[_GenericTLSSessionInheritance]:
+    res = tsp.parse_chunk(data, known_content_type)
+    return res
 
 
 # if __name__ == '__main__':
