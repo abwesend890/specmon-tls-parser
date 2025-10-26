@@ -35,6 +35,9 @@ message SplitResponse {
 
 service TlsParser {
   rpc Parse (ParseRequest) returns (ParseResponse) {}
+//  HelloRetryRequest = ServerHello with special random value
+//  https://datatracker.ietf.org/doc/html/rfc8446#section-4.1.3
+  rpc ParseHelloRetryRequest (ParseRequest) returns (ParseResponse) {}
 }
 
 message ParseRequest {
@@ -52,7 +55,8 @@ message ParseResponseMessage {
     ChangeCipherSpec change_cipher_spec = 3;
     ApplicationData application_data = 4;
     ServerHello server_hello = 5;
-    Raw raw = 6;
+    HelloRetryRequest hello_retry_request = 6;
+    Raw raw = 7;
   }
 }
 
@@ -80,6 +84,15 @@ message ClientHello {
 }
 
 message ServerHello {
+  bytes legacy_version = 1;
+  bytes random = 2;
+  bytes legacy_session_id_echo = 3;
+  bytes cipher_suites = 4;
+  bytes legacy_compression_methods = 5;
+  bytes extensions = 6;
+}
+
+message HelloRetryRequest {
   bytes legacy_version = 1;
   bytes random = 2;
   bytes legacy_session_id_echo = 3;

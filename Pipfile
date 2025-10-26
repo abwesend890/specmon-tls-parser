@@ -4,11 +4,11 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-scapy = "*"
 grpcio = "*"
 grpcio-tools = "*"
 grpcio-reflection = "*"
 loguru = "*"
+scapy = "2.6.1"
 
 [dev-packages]
 
