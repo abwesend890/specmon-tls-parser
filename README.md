@@ -7,17 +7,21 @@ You can install the protobuf compiler with the following command:
 `sudo apt-get update && sudo apt-get install protobuf-compiler`
 
 ### update path variable
-The following should be within your $PATH: `$(go env GOPATH)/bin`
+The following should be within your `$PATH`: `$(go env GOPATH)/bin`
 
 
 
 # GRPC example
-in `grpc/`, execute Make to generate the python files
+_this example may be outdated, but can be adapted_
+
+in `grpc/`, execute Make to generate the python files (this should have happened with `make build`)
 
 ## Server
 execute `grpc/server.py`
 
 ## Emulate Client 
+_this example is outdated, but can be adapted_
+
 ```
 grpcurl \
   -plaintext \
