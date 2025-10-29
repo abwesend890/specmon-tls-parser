@@ -92,6 +92,7 @@ message ServerHello {
   bytes extensions = 6;
 }
 
+// same as ServerHello but with fixed random value, still we return it as parsed for validation in SpecMon
 message HelloRetryRequest {
   bytes legacy_version = 1;
   bytes random = 2;
