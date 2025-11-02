@@ -58,6 +58,8 @@ message ParseResponseMessage {
     HelloRetryRequest hello_retry_request = 6;
     Raw raw = 7;
   }
+  bytes message_header = 8;
+  bytes transcript = 9;
 }
 
 

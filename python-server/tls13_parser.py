@@ -95,18 +95,7 @@ class TLSSessionParser:
 
         # Keep parsing while there's data in the buffer
         while self.buffer:
-            # Tell Scapy to use our persistent session object to continue the dissection.
-            # Scapy will update self.session internally.
-
-            # if known_content_type == ContentType.HelloRetryRequest:
-            #     record = TLS13HelloRetryRequest(self.buffer)
-            # elif known_content_type == ContentType.Unknown:
-            #     record = TLS(self.buffer)
-            # else:
-            #     raise NotImplementedError(
-            #         "Not implemented ContentType hint. Try generic API."
-            #     )
-
+            # we need to do this once anyway to strip the record/message prefix
             record = TLS(self.buffer)
 
             # if we know the content type, we use the request from the first parsed attempt to strip the preamble
@@ -158,6 +147,10 @@ def _get_parsed_dict(
     for parsed in parsed_list:
         parse_response_message = dict()
         logger.debug(f"In handle Handshake with type {type(parsed)}")
+        parse_response_message["message_header"] = parsed.original[
+            :4
+        ]  # get the first 4 bytes (1 byte message type, 3 bytes message length)
+        parse_response_message["transcript"] = parsed.original
 
         #  HELLO RETRY REQUEST
         if isinstance(parsed, TLS13HelloRetryRequest):
@@ -245,7 +238,7 @@ def _get_parsed_dict(
             continue
 
         raise NotImplementedError(f"handling of {type(parsed)} is not implemented")
-    # parse_response_message["message_header"] = message_header
+
     return dict(messages=parse_response)
 
 
