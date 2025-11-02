@@ -147,9 +147,9 @@ def _get_parsed_dict(
     for parsed in parsed_list:
         parse_response_message = dict()
         logger.debug(f"In handle Handshake with type {type(parsed)}")
-        parse_response_message["message_header"] = parsed.original[
-            :4
-        ]  # get the first 4 bytes (1 byte message type, 3 bytes message length)
+        # parse_response_message["message_header"] = parsed.original[
+        #     :4
+        # ]  # get the first 4 bytes (1 byte message type, 3 bytes message length)
         parse_response_message["transcript"] = parsed.original
 
         #  HELLO RETRY REQUEST
