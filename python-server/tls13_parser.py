@@ -2,6 +2,7 @@ from enum import Enum
 from functools import lru_cache
 from typing import Union, List
 
+from scapy.layers.tls.extensions import TLS_Ext_Unknown
 from scapy.layers.tls.session import TLSSession, _GenericTLSSessionInheritance
 from scapy.main import load_layer
 
@@ -144,12 +145,143 @@ tsp = TLSSessionParser()
 @lru_cache
 def parse_tls13_cached(
     data: bytes | str, known_content_type: ContentType = ContentType.Unknown
-) -> List[_GenericTLSSessionInheritance]:
-    res = tsp.parse_chunk(data, known_content_type)
-    return res
+) -> dict:
+    res: List[_GenericTLSSessionInheritance] = tsp.parse_chunk(data, known_content_type)
+    return _get_parsed_dict(res)
 
 
-# if __name__ == '__main__':
-#     raw_hex_new_session_ticket = "1603030039" + "040000350000012cb2e84fd00800000000000000000020078ce471076e6fcf8a8cbce7d3ef876bd01c1caeccded1fa1e722ffe3946821b0000"
-#     rec, msgs = parse_tls13(bytes.fromhex(raw_hex_new_session_ticket))
-#     print(msgs)
+def _get_parsed_dict(
+    parsed_list: List[_GenericTLSSessionInheritance],
+):
+
+    parse_response = list()
+    for parsed in parsed_list:
+        parse_response_message = dict()
+        logger.debug(f"In handle Handshake with type {type(parsed)}")
+
+        #  HELLO RETRY REQUEST
+        if isinstance(parsed, TLS13HelloRetryRequest):
+            of_interest_scapy_mapping = dict(
+                version="legacy_version",
+                random_bytes="random",
+                sid="legacy_session_id_echo",
+                cipher="cipher_suites",
+                comp="legacy_compression_methods",
+                ext="extensions",
+            )
+            answer = _format_fields(parsed, of_interest_scapy_mapping)
+            parse_response_message["hello_retry_request"] = answer
+            parse_response.append(parse_response_message)
+            continue
+
+        #  NEW SESSION TICKET
+        if isinstance(parsed, TLS13NewSessionTicket):
+            of_interest_scapy_mapping = dict(
+                ticket_lifetime="ticket_lifetime",
+                ticket_age_add="ticket_age_add",
+                ticket_nonce="ticket_nonce",
+                ticket="ticket",
+            )
+            answer = _format_fields(parsed, of_interest_scapy_mapping)
+            parse_response_message["new_session_ticket"] = answer
+            parse_response.append(parse_response_message)
+            # parse_response_message = dict(new_session_ticket=answer)
+            # return tls13_pb2.ParseResponse(**parse_response_message)
+            continue
+
+        if isinstance(parsed, TLS13ClientHello):
+            of_interest_scapy_mapping = dict(
+                version="legacy_version",
+                random_bytes="random",
+                ciphers="cipher_suites",
+                sid="legacy_session_id",
+                comp="legacy_compression_methods",
+                ext="extensions",
+            )
+
+            answer = _format_fields(parsed, of_interest_scapy_mapping)
+            parse_response_message["client_hello"] = answer
+            # parse_response_message = dict(client_hello=answer)
+            # return tls13_pb2.ParseResponse(**parse_response_message)
+            parse_response.append(parse_response_message)
+            continue
+
+        if isinstance(parsed, TLSChangeCipherSpec):
+            of_interest_scapy_mapping = dict(msgtype="change_cipher_spec")
+            answer = _format_fields(parsed, of_interest_scapy_mapping)
+            parse_response_message["change_cipher_spec"] = answer
+            # parse_response_message = dict(change_cipher_spec=answer)
+            # return tls13_pb2.ParseResponse(**parse_response_message)
+            parse_response.append(parse_response_message)
+            continue
+
+        if isinstance(parsed, TLSApplicationData):
+            of_interest_scapy_mapping = dict(data="application_data")
+            answer = _format_fields(parsed, of_interest_scapy_mapping)
+            parse_response_message["application_data"] = answer
+            # parse_response_message = dict(application_data=answer)
+            parse_response.append(parse_response_message)
+            continue
+
+        if isinstance(parsed, Raw):
+            of_interest_scapy_mapping = dict(load="load")
+            answer = _format_fields(parsed, of_interest_scapy_mapping)
+            parse_response_message["raw"] = answer
+            parse_response.append(parse_response_message)
+            continue
+
+        if isinstance(parsed, TLS13ServerHello):
+            of_interest_scapy_mapping = dict(
+                version="legacy_version",
+                random_bytes="random",
+                sid="legacy_session_id_echo",
+                cipher="cipher_suites",
+                comp="legacy_compression_methods",
+                ext="extensions",
+            )
+            answer = _format_fields(parsed, of_interest_scapy_mapping)
+            parse_response_message["server_hello"] = answer
+            parse_response.append(parse_response_message)
+            continue
+
+        raise NotImplementedError(f"handling of {type(parsed)} is not implemented")
+    # parse_response_message["message_header"] = message_header
+    return dict(messages=parse_response)
+
+
+def _format_fields(parsed, of_interest_mapping: dict):
+    answer = dict()
+    for field in parsed.fields_desc:
+        if not field.name in of_interest_mapping.keys():
+            logger.warning(
+                f"Not including attribute '{field.name}' of {type(parsed)} in response. Would be '{_get_field_value(parsed, field)}'"
+            )
+            continue
+        value = _get_field_value(parsed, field)
+        assert (
+            value in parsed.original
+        ), f"constructed value {value} not found in original {parsed.original}"
+        answer[of_interest_mapping[field.name]] = value
+    return answer
+
+
+def _get_field_value(parsed, field) -> bytes:
+    logger.debug(f"value of {field.name}: {getattr(parsed, field.name)}")
+    value = getattr(parsed, field.name)
+    return _format_field_value(field, value)
+
+
+def _format_field_value(field, value):
+    if isinstance(value, bytes):
+        return value
+    elif isinstance(value, int):
+        return field.struct.pack(value)
+    elif isinstance(value, list):
+        if all(isinstance(item, int) for item in value):
+            return b"".join(map(lambda x: field.struct.pack(x), value))
+        if all(isinstance(item, TLS_Ext_Unknown) for item in value):
+            return b"".join(map(lambda x: x.original, value))
+
+    raise NotImplementedError(
+        f"Not implemented return type: {type(value)}. Need conversion to bytes"
+    )

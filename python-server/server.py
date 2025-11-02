@@ -39,140 +39,8 @@ import tls13_pb2, tls13_pb2_grpc
 import tls13_parser
 
 
-def _format_field_value(field, value):
-    if isinstance(value, bytes):
-        return value
-    elif isinstance(value, int):
-        return field.struct.pack(value)
-    elif isinstance(value, list):
-        if all(isinstance(item, int) for item in value):
-            return b"".join(map(lambda x: field.struct.pack(x), value))
-        if all(isinstance(item, TLS_Ext_Unknown) for item in value):
-            return b"".join(map(lambda x: x.original, value))
-
-    raise NotImplementedError(
-        f"Not implemented return type: {type(value)}. Need conversion to bytes"
-    )
-
-
-def _get_field_value(parsed, field) -> bytes:
-    logger.debug(f"value of {field.name}: {getattr(parsed, field.name)}")
-    value = getattr(parsed, field.name)
-    return _format_field_value(field, value)
-
-
-def _format_fields(parsed, of_interest_mapping: dict):
-    answer = dict()
-    for field in parsed.fields_desc:
-        if not field.name in of_interest_mapping.keys():
-            logger.warning(
-                f"Not including attribute '{field.name}' of {type(parsed)} in response. Would be '{_get_field_value(parsed, field)}'"
-            )
-            continue
-        value = _get_field_value(parsed, field)
-        assert (
-            value in parsed.original
-        ), f"constructed value {value} not found in original {parsed.original}"
-        answer[of_interest_mapping[field.name]] = value
-    return answer
-
-
-def _handle_handshake(
-    parsed_list: List[_GenericTLSSessionInheritance],
-):
-
-    parse_response = list()
-    for parsed in parsed_list:
-        parse_response_message = dict()
-        logger.debug(f"In handle Handshake with type {type(parsed)}")
-
-        #  HELLO RETRY REQUEST
-        if isinstance(parsed, TLS13HelloRetryRequest):
-            of_interest_scapy_mapping = dict(
-                version="legacy_version",
-                random_bytes="random",
-                sid="legacy_session_id_echo",
-                cipher="cipher_suites",
-                comp="legacy_compression_methods",
-                ext="extensions",
-            )
-            answer = _format_fields(parsed, of_interest_scapy_mapping)
-            parse_response_message["hello_retry_request"] = answer
-            parse_response.append(parse_response_message)
-            continue
-
-        #  NEW SESSION TICKET
-        if isinstance(parsed, TLS13NewSessionTicket):
-            of_interest_scapy_mapping = dict(
-                ticket_lifetime="ticket_lifetime",
-                ticket_age_add="ticket_age_add",
-                ticket_nonce="ticket_nonce",
-                ticket="ticket",
-            )
-            answer = _format_fields(parsed, of_interest_scapy_mapping)
-            parse_response_message["new_session_ticket"] = answer
-            parse_response.append(parse_response_message)
-            # parse_response_message = dict(new_session_ticket=answer)
-            # return tls13_pb2.ParseResponse(**parse_response_message)
-            continue
-
-        if isinstance(parsed, TLS13ClientHello):
-            of_interest_scapy_mapping = dict(
-                version="legacy_version",
-                random_bytes="random",
-                ciphers="cipher_suites",
-                sid="legacy_session_id",
-                comp="legacy_compression_methods",
-                ext="extensions",
-            )
-
-            answer = _format_fields(parsed, of_interest_scapy_mapping)
-            parse_response_message["client_hello"] = answer
-            # parse_response_message = dict(client_hello=answer)
-            # return tls13_pb2.ParseResponse(**parse_response_message)
-            parse_response.append(parse_response_message)
-            continue
-
-        if isinstance(parsed, TLSChangeCipherSpec):
-            of_interest_scapy_mapping = dict(msgtype="change_cipher_spec")
-            answer = _format_fields(parsed, of_interest_scapy_mapping)
-            parse_response_message["change_cipher_spec"] = answer
-            # parse_response_message = dict(change_cipher_spec=answer)
-            # return tls13_pb2.ParseResponse(**parse_response_message)
-            parse_response.append(parse_response_message)
-            continue
-
-        if isinstance(parsed, TLSApplicationData):
-            of_interest_scapy_mapping = dict(data="application_data")
-            answer = _format_fields(parsed, of_interest_scapy_mapping)
-            parse_response_message["application_data"] = answer
-            # parse_response_message = dict(application_data=answer)
-            parse_response.append(parse_response_message)
-            continue
-
-        if isinstance(parsed, Raw):
-            of_interest_scapy_mapping = dict(load="load")
-            answer = _format_fields(parsed, of_interest_scapy_mapping)
-            parse_response_message["raw"] = answer
-            parse_response.append(parse_response_message)
-            continue
-
-        if isinstance(parsed, TLS13ServerHello):
-            of_interest_scapy_mapping = dict(
-                version="legacy_version",
-                random_bytes="random",
-                sid="legacy_session_id_echo",
-                cipher="cipher_suites",
-                comp="legacy_compression_methods",
-                ext="extensions",
-            )
-            answer = _format_fields(parsed, of_interest_scapy_mapping)
-            parse_response_message["server_hello"] = answer
-            parse_response.append(parse_response_message)
-            continue
-
-        raise NotImplementedError(f"handling of {type(parsed)} is not implemented")
-    return tls13_pb2.ParseResponse(**dict(messages=parse_response))
+def grpc_encode(parse_response: dict):
+    return tls13_pb2.ParseResponse(**parse_response)
 
 
 class TlsParserServicer(tls13_pb2_grpc.TlsParserServicer):
@@ -189,10 +57,11 @@ class TlsParserServicer(tls13_pb2_grpc.TlsParserServicer):
         # prefix data in case we do not have equal number of bytes
         data = request.data
         try:
-            parsed_data = tls13_parser.parse_tls13_cached(
-                data, known_content_type=tls13_parser.ContentType.HelloRetryRequest
+            return grpc_encode(
+                tls13_parser.parse_tls13_cached(
+                    data, known_content_type=tls13_parser.ContentType.HelloRetryRequest
+                )
             )
-            return _handle_handshake(parsed_data)
 
         except AssertionError as e:
             logger.exception(e)
@@ -210,8 +79,7 @@ class TlsParserServicer(tls13_pb2_grpc.TlsParserServicer):
         # prefix data in case we do not have equal number of bytes
         data = request.data
         try:
-            parsed_data = tls13_parser.parse_tls13_cached(data)
-            return _handle_handshake(parsed_data)
+            return grpc_encode(tls13_parser.parse_tls13_cached(data))
 
         except AssertionError as e:
             logger.exception(e)
