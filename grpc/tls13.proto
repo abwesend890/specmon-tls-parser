@@ -82,7 +82,17 @@ message ClientHello {
   bytes legacy_session_id = 3;
   bytes cipher_suites = 4;
   bytes legacy_compression_methods = 5;
-  bytes extensions = 6;
+  repeated Extension extensions = 6;
+}
+
+//
+//message Extensions {
+//  repeated Extension extension = 1;
+//}
+
+message Extension {
+  string extension_type = 1;
+  bytes extension_data = 2;
 }
 
 message ServerHello {
@@ -91,7 +101,7 @@ message ServerHello {
   bytes legacy_session_id_echo = 3;
   bytes cipher_suites = 4;
   bytes legacy_compression_methods = 5;
-  bytes extensions = 6;
+  repeated Extension extensions = 6;
 }
 
 // same as ServerHello but with fixed random value, still we return it as parsed for validation in SpecMon
@@ -101,7 +111,7 @@ message HelloRetryRequest {
   bytes legacy_session_id_echo = 3;
   bytes cipher_suites = 4;
   bytes legacy_compression_methods = 5;
-  bytes extensions = 6;
+  repeated Extension extensions = 6;
 }
 
 message NewSessionTicket {
@@ -109,7 +119,7 @@ message NewSessionTicket {
   bytes ticket_age_add = 2;
   bytes ticket_nonce = 3;
   bytes ticket = 4;
-  bytes extensions = 5;
+  repeated Extension extensions = 6;
 }
 
 // ---------------------------------------

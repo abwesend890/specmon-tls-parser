@@ -1,6 +1,6 @@
 from enum import Enum
 from functools import lru_cache
-from typing import Union, List
+from typing import Union, List, Dict
 
 from scapy.layers.tls.extensions import TLS_Ext_Unknown
 from scapy.layers.tls.session import TLSSession, _GenericTLSSessionInheritance
@@ -251,14 +251,15 @@ def _format_fields(parsed, of_interest_mapping: dict):
             )
             continue
         value = _get_field_value(parsed, field)
-        assert (
-            value in parsed.original
-        ), f"constructed value {value} not found in original {parsed.original}"
+        if isinstance(value, bytes):
+            assert (
+                value in parsed.original
+            ), f"constructed value {value} not found in original {parsed.original}"
         answer[of_interest_mapping[field.name]] = value
     return answer
 
 
-def _get_field_value(parsed, field) -> bytes:
+def _get_field_value(parsed, field) -> bytes | List[dict]:
     logger.debug(f"value of {field.name}: {getattr(parsed, field.name)}")
     value = getattr(parsed, field.name)
     return _format_field_value(field, value)
@@ -273,8 +274,26 @@ def _format_field_value(field, value):
         if all(isinstance(item, int) for item in value):
             return b"".join(map(lambda x: field.struct.pack(x), value))
         if all(isinstance(item, TLS_Ext_Unknown) for item in value):
-            return b"".join(map(lambda x: x.original, value))
+            # this makes the extensions being returned as the original string instead of the object
+            # return b"".join(map(lambda x: x.original, value))
+            return _format_extensions(field, value)
 
     raise NotImplementedError(
         f"Not implemented return type: {type(value)}. Need conversion to bytes"
     )
+
+
+def __format_extension_name(name: str):
+    return name.lower().replace("tls extension - ", "").replace(" ", "_")
+
+
+def __format_extension(item):
+    return dict(
+        extension_type=__format_extension_name(item.name),
+        # the original data contains 0000 (type server name) 0019 (length) and then the content
+        extension_data=item.original,
+    )
+
+
+def _format_extensions(field, value):
+    return [__format_extension(item) for item in value]
