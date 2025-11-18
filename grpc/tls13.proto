@@ -58,7 +58,6 @@ message ParseResponseMessage {
     HelloRetryRequest hello_retry_request = 6;
     Raw raw = 7;
   }
-//  bytes message_header = 8;
   bytes transcript = 8;
 }
 
@@ -83,16 +82,6 @@ message ClientHello {
   bytes cipher_suites = 4;
   bytes legacy_compression_methods = 5;
   repeated Extension extensions = 6;
-}
-
-//
-//message Extensions {
-//  repeated Extension extension = 1;
-//}
-
-message Extension {
-  string extension_type = 1;
-  bytes extension_data = 2;
 }
 
 message ServerHello {
@@ -121,6 +110,67 @@ message NewSessionTicket {
   bytes ticket = 4;
   repeated Extension extensions = 6;
 }
+
+
+message Extension {
+  oneof payload {
+    GenericExtension generic_extension = 1;
+    KeyShareExtension key_share_extension = 2;
+  }
+}
+
+message GenericExtension {
+  string extension_type = 1;
+  bytes extension_data = 2;
+}
+
+message KeyShareExtension {
+  repeated KeyShareEntry key_share_entry = 1;
+}
+
+message KeyShareEntry {
+  NamedGroup named_group = 1;
+  bytes key_exchange = 2;
+}
+
+enum NamedGroup {
+  NAMED_GROUP_UNALLOCATED_RESERVED = 0; // 0x0000
+
+  // obsolete_RESERVED(0x0001..0x0016)
+  reserved 1 to 22;
+
+  /* Elliptic Curve Groups (ECDHE) */
+  NAMED_GROUP_SECP256R1 = 23; // 0x0017
+  NAMED_GROUP_SECP384R1 = 24; // 0x0018
+  NAMED_GROUP_SECP521R1 = 25; // 0x0019
+
+  // obsolete_RESERVED(0x001A..0x001C)
+  reserved 26 to 28;
+
+  NAMED_GROUP_X25519 = 29; // 0x001D
+  NAMED_GROUP_X448 = 30; // 0x001E
+
+  /* Finite Field Groups (DHE) */
+  NAMED_GROUP_FFDHE2048 = 256; // 0x0100
+  NAMED_GROUP_FFDHE3072 = 257; // 0x0101
+  NAMED_GROUP_FFDHE4096 = 258; // 0x0102
+  NAMED_GROUP_FFDHE6144 = 259; // 0x0103
+  NAMED_GROUP_FFDHE8192 = 260; // 0x0104
+
+  /* Reserved Code Points */
+  // ffdhe_private_use(0x01FC..0x01FF)
+  reserved 508 to 511;
+
+  // ecdhe_private_use(0xFE00..0xFEFF)
+  reserved 65024 to 65279;
+
+  // obsolete_RESERVED(0xFF01..0xFF02)
+  reserved 65281 to 65282;
+
+  // (0xFFFF)
+  reserved 65535;
+}
+
 
 // ---------------------------------------
 // --------- END TLS13 section

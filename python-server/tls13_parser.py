@@ -3,6 +3,7 @@ from functools import lru_cache
 from typing import Union, List, Dict
 
 from scapy.layers.tls.extensions import TLS_Ext_Unknown
+from scapy.layers.tls.keyexchange_tls13 import TLS_Ext_KeyShare_CH
 from scapy.layers.tls.session import TLSSession, _GenericTLSSessionInheritance
 from scapy.main import load_layer
 
@@ -287,11 +288,26 @@ def __format_extension_name(name: str):
     return name.lower().replace("tls extension - ", "").replace(" ", "_")
 
 
+def __format_key_share_ch(share: TLS_Ext_KeyShare_CH):
+    key_share_entry = dict(key_exchange=share.key_exchange, named_group=share.group)
+    return key_share_entry
+
+
 def __format_extension(item):
+    if isinstance(item, TLS_Ext_KeyShare_CH):
+        shares = dict(
+            key_share_entry=[
+                __format_key_share_ch(share) for share in item.client_shares
+            ]
+        )
+        return dict(key_share_extension=shares)
+
     return dict(
-        extension_type=__format_extension_name(item.name),
-        # the original data contains 0000 (type server name) 0019 (length) and then the content
-        extension_data=item.original,
+        generic_extension=dict(
+            extension_type=__format_extension_name(item.name),
+            # the original data contains 0000 (type server name) 0019 (length) and then the content
+            extension_data=item.original,
+        )
     )
 
 
