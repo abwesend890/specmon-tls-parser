@@ -61,10 +61,15 @@ class TLSSessionParser:
         self.buffer = b""
 
     def _get_fixed_message(self, m):
+        # do not return changeCipherSpec in message container
+        if isinstance(m, TLSChangeCipherSpec):
+            return None
+        # fix handshake message
         if isinstance(m, _TLSHandshake):
             cls = TLS13_HANDSHAKES.get(m.msgtype)
             res = cls(m.original) if cls else m
             return res
+        # return as is
         elif isinstance(
             m,
             Union[TLSChangeCipherSpec | TLS13ClientHello | TLSApplicationData | Raw],
@@ -114,7 +119,10 @@ class TLSSessionParser:
                 break
 
             # at least for the TLS13NewSessionTicket we need to tell scapy that it is TLS13
-            parsed_fixed_classes = [self._get_fixed_message(m) for m in record.msg]
+            parsed_fixed_classes = filter(
+                lambda x: x is not None,
+                [self._get_fixed_message(m) for m in record.msg],
+            )
 
             # Add the successfully parsed messages to our results
             parsed_in_chunk.extend(parsed_fixed_classes)
