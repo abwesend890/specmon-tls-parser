@@ -136,6 +136,7 @@ tsp = TLSSessionParser()
 def parse_tls13_cached(
     data: bytes | str, known_content_type: ContentType = ContentType.Unknown
 ) -> dict:
+    logger.info(f"Parsing data: {data.hex()}")
     res: List[_GenericTLSSessionInheritance] = tsp.parse_chunk(data, known_content_type)
     return _get_parsed_dict(res)
 
@@ -147,7 +148,7 @@ def _get_parsed_dict(
     parse_response = list()
     for parsed in parsed_list:
         parse_response_message = dict()
-        logger.debug(f"In handle Handshake with type {type(parsed)}")
+        logger.debug(f"Parsed message of type {type(parsed)}")
         # parse_response_message["message_header"] = parsed.original[
         #     :4
         # ]  # get the first 4 bytes (1 byte message type, 3 bytes message length)
@@ -247,7 +248,7 @@ def _format_fields(parsed, of_interest_mapping: dict):
     answer = dict()
     for field in parsed.fields_desc:
         if not field.name in of_interest_mapping.keys():
-            logger.warning(
+            logger.trace(
                 f"Not including attribute '{field.name}' of {type(parsed)} in response. Would be '{_get_field_value(parsed, field)}'"
             )
             continue
@@ -261,7 +262,7 @@ def _format_fields(parsed, of_interest_mapping: dict):
 
 
 def _get_field_value(parsed, field) -> bytes | List[dict]:
-    logger.debug(f"value of {field.name}: {getattr(parsed, field.name)}")
+    logger.trace(f"value of {field.name}: {getattr(parsed, field.name)}")
     value = getattr(parsed, field.name)
     return _format_field_value(field, value)
 

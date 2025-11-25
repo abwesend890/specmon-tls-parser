@@ -52,8 +52,6 @@ class TlsParserServicer(tls13_pb2_grpc.TlsParserServicer):
         return tls13_pb2.SplitResponse(part1=part1, part2=part2)
 
     def ParseHelloRetryRequest(self, request, context):
-        logger.info(f"Received request with data: {request.data.hex()}")
-
         # prefix data in case we do not have equal number of bytes
         data = request.data
         try:
@@ -62,7 +60,6 @@ class TlsParserServicer(tls13_pb2_grpc.TlsParserServicer):
                     data, known_content_type=tls13_parser.ContentType.HelloRetryRequest
                 )
             )
-
         except AssertionError as e:
             logger.exception(e)
             raise e
@@ -74,8 +71,6 @@ class TlsParserServicer(tls13_pb2_grpc.TlsParserServicer):
             raise e
 
     def Parse(self, request, context):
-        logger.info(f"Received request with data: {request.data.hex()}")
-
         # prefix data in case we do not have equal number of bytes
         data = request.data
         try:
