@@ -9,6 +9,7 @@ grpcio-tools = "*"
 grpcio-reflection = "*"
 loguru = "*"
 scapy = "2.6.1"
+cryptography = "*"
 
 [dev-packages]
 
