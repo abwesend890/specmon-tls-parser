@@ -115,7 +115,7 @@ class TLSSessionParser:
 
             # If Scapy couldn't parse a full record, the .msg list will be empty.
             # We break the loop and wait for more data.
-            if not record.msg:
+            if not hasattr(record, "msg") or not record.msg:
                 break
 
             # at least for the TLS13NewSessionTicket we need to tell scapy that it is TLS13
