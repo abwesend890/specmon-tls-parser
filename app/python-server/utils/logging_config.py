@@ -17,4 +17,7 @@ log_level = "INFO"  # (20)
 log_default = os.environ.get("LOG_LEVEL", log_level).upper()
 
 # Add a new sink with a custom logger level (e.g., WARNING)
-logger.add(sink=sys.stdout, level=log_default)
+if not os.environ.get("PYCHARM_HOSTED") == '1':
+    logger.add(sink=sys.stdout, level=log_default, format="{level} | {message}")
+else:
+    logger.add(sink=sys.stdout, level=log_default)
