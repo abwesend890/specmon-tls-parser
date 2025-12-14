@@ -57,8 +57,7 @@ class TLSSessionParser:
     """
 
     def __init__(self):
-        # A buffer to hold data if a chunk doesn't contain a full TLS record.
-        self.buffer = b""
+        pass
 
     def _get_fixed_message(self, m):
         # do not return changeCipherSpec in message container
@@ -92,17 +91,19 @@ class TLSSessionParser:
         Returns:
             A list of parsed Scapy TLS message objects from this chunk.
         """
+        buffer = b""
+
         if isinstance(data, str):
             data = bytes.fromhex(data)
 
         # Add the new data to our internal buffer
-        self.buffer += data
+        buffer += data
         parsed_in_chunk = []
 
         # Keep parsing while there's data in the buffer
-        while self.buffer:
+        while buffer:
             # we need to do this once anyway to strip the record/message prefix
-            record = TLS(self.buffer)
+            record = TLS(buffer)
 
             # if we know the content type, we use the request from the first parsed attempt to strip the preamble
             # the original bytes without the preamble are parsed as the content type
@@ -130,9 +131,9 @@ class TLSSessionParser:
             # The unparsed part of the buffer is in the payload. This becomes
             # our new buffer for the next iteration of the loop.
             if isinstance(record.payload, NoPayload):
-                self.buffer = b""
+                buffer = b""
             else:
-                self.buffer = bytes(record.payload)
+                buffer = bytes(record.payload)
 
         return flatten(parsed_in_chunk)
 
