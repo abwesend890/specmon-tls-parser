@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  specmon-tls-parser:
+    build: .
+    image: tran-master-thesis/specmon-tls-parser:1.0
+    container_name: specmon-tls-parser
+    restart: always
+    ports:
+      - "127.0.0.1:50051:50051"
+    environment:
+      - PYTHONUNBUFFERED=1 
