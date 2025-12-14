@@ -1,6 +1,11 @@
-# Build
-Use `make build`. This especially compiles the protobuf files used by the python server.
+# Low-Level Note
+For simpler execution, make use of `make` / `docker compose` in the parent directory.
+If you want to execute the parser without docker, continue reading here.
 
+# Build
+Use `make build` in this directory. 
+This especially compiles the protobuf files used by the python server.
+<!-- 
 ## requirements
 ### packages
 You can install the protobuf compiler with the following command:
@@ -8,8 +13,16 @@ You can install the protobuf compiler with the following command:
 
 ### update path variable
 The following should be within your `$PATH`: `$(go env GOPATH)/bin`
+ -->
+# Prepare the environment
+Run `make shell` to get the pipenv shell.
 
+# Server Control
+## Start the server
+From this directory, run `make -C python-server start`
 
+## Stop the server
+From this directory, run `make -C python-server stop`
 
 # GRPC example
 _this example may be outdated, but can be adapted_
