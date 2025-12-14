@@ -14,6 +14,4 @@ RUN python -m grpc_tools.protoc \
     --grpc_python_out=python-server \
     ./grpc/tls13.proto
 
-EXPOSE 50051
-
 CMD ["python", "python-server/server.py"]
