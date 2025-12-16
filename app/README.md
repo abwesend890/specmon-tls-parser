@@ -24,6 +24,9 @@ From this directory, run `make -C python-server start`
 ## Stop the server
 From this directory, run `make -C python-server stop`
 
+## Environment Variables
+- `PORT`: controls the port the server listens on. 
+
 # GRPC example
 _this example may be outdated, but can be adapted_
 

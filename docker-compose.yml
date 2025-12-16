@@ -7,4 +7,5 @@ services:
     ports:
       - "127.0.0.1:50051:50051"
     environment:
+      - PORT=50051
       - PYTHONUNBUFFERED=1 

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import os
 import struct
 from http.client import responses
 from typing import Union, List
@@ -137,11 +138,13 @@ def serve():
     )
 
     reflection.enable_server_reflection(SERVICE_NAMES, server)
+    logger.info("Log Level: " + utils.logging_config.log_default)
 
-    logger.info("Starting server. Listening on port 50051. Reflection is enabled.")
-    server.add_insecure_port("[::]:50051")
+    port = os.environ.get("PORT", "50051")
+    logger.info(f"Starting server. Reflection is enabled.")
+    server.add_insecure_port(f"[::]:{port}")
     server.start()
-
+    logger.info(f"Listening on port {port}.")
     try:
         while True:
             time.sleep(86400)
