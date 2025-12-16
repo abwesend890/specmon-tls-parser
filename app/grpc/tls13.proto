@@ -9,20 +9,20 @@ option go_package = "./Tls13Parser";
 // ---------------------------------------
 // --------- BEGIN Utils section
 // ---------------------------------------
-
-service Utils {
-  rpc Split (SplitRequest) returns (SplitResponse) {}
-}
-
-message SplitRequest {
-  string data = 1;
-  uint32 pos = 2;
-}
-
-message SplitResponse {
-  string part1 = 1;
-  string part2 = 2;
-}
+//
+//service Utils {
+//  rpc Split (SplitRequest) returns (SplitResponse) {}
+//}
+//
+//message SplitRequest {
+//  string data = 1;
+//  uint32 pos = 2;
+//}
+//
+//message SplitResponse {
+//  string part1 = 1;
+//  string part2 = 2;
+//}
 
 // ---------------------------------------
 // --------- END Utils section
@@ -33,11 +33,15 @@ message SplitResponse {
 // --------- BEGIN TLS13 section
 // ---------------------------------------
 
-service TlsParser {
+service Generic {
   rpc Parse (ParseRequest) returns (ParseResponse) {}
+}
+
+service Specific {
 //  HelloRetryRequest = ServerHello with special random value
 //  https://datatracker.ietf.org/doc/html/rfc8446#section-4.1.3
   rpc ParseHelloRetryRequest (ParseRequest) returns (ParseResponse) {}
+  rpc GetKeyShareExtension (ParseRequest) returns (KeyShareExtension) {}
 }
 
 message ParseRequest {

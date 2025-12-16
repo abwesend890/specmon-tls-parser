@@ -40,18 +40,11 @@ import tls13_pb2, tls13_pb2_grpc
 import tls13_parser
 
 
-def grpc_encode(parse_response: dict):
-    return tls13_pb2.ParseResponse(**parse_response)
+def grpc_encode(parse_response: dict, format_func=tls13_pb2.ParseResponse):
+    return format_func(**parse_response)
 
 
-class TlsParserServicer(tls13_pb2_grpc.TlsParserServicer):
-    def Split(self, request: tls13_pb2.SplitRequest, context):
-        logger.info(f"Received request with data: {request.data}")
-        data: str = request.data
-        pos: int = request.pos
-        part1, part2 = data.split(pos)
-        return tls13_pb2.SplitResponse(part1=part1, part2=part2)
-
+class SpecificServicer(tls13_pb2_grpc.SpecificServicer):
     def ParseHelloRetryRequest(self, request, context):
         # prefix data in case we do not have equal number of bytes
         data = request.data
@@ -71,6 +64,31 @@ class TlsParserServicer(tls13_pb2_grpc.TlsParserServicer):
             context.set_details(f"An error occurred: {e}")
             raise e
 
+    def GetKeyShareExtension(self, request, context):
+        # prefix data in case we do not have equal number of bytes
+        data = request.data
+        try:
+            parsed = tls13_parser.parse_tls13_cached(
+                    data)
+            # never saw a case in which we have multiple messages, leaving this to future work, may be solved by flatting?
+            key_share_entries = []
+            for ext in parsed.get("messages")[0].get("client_hello").get("extensions"):
+                if ext.get("key_share_extension") is not None:
+                    key_share_entries.extend(ext.get("key_share_extension").get("key_share_entry"))
+            return grpc_encode(dict(key_share_entry=key_share_entries), format_func=tls13_pb2.KeyShareExtension)
+            raise AssertionError("No key_share_extension found.")
+        except AssertionError as e:
+            logger.exception(e)
+            raise e
+        except Exception as e:
+            logger.error(f"Error parsing {request.data}; error: {e}")
+            logger.exception(e)
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details(f"An error occurred: {e}")
+            raise e
+
+
+class GenericServicer(tls13_pb2_grpc.GenericServicer):
     def Parse(self, request, context):
         # prefix data in case we do not have equal number of bytes
         data = request.data
@@ -130,12 +148,11 @@ class TlsParserServicer(tls13_pb2_grpc.TlsParserServicer):
 
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    tls13_pb2_grpc.add_TlsParserServicer_to_server(TlsParserServicer(), server)
+    tls13_pb2_grpc.add_SpecificServicer_to_server(SpecificServicer(), server)
+    tls13_pb2_grpc.add_GenericServicer_to_server(GenericServicer(), server)
 
-    SERVICE_NAMES = (
-        tls13_pb2.DESCRIPTOR.services_by_name["TlsParser"].full_name,
-        reflection.SERVICE_NAME,
-    )
+    SERVICE_NAMES = list(map(lambda x: x[1].full_name, tls13_pb2.DESCRIPTOR.services_by_name.items()))
+    SERVICE_NAMES.append(reflection.SERVICE_NAME)
 
     reflection.enable_server_reflection(SERVICE_NAMES, server)
     logger.info("Log Level: " + utils.logging_config.log_default)
