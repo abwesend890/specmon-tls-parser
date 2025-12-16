@@ -1,45 +1,22 @@
 #!/usr/bin/env python
 import os
-import struct
-from http.client import responses
-from typing import Union, List
+import time
+from concurrent import futures
 
 # server.py
 import grpc
-from concurrent import futures
-import time
-
-from loguru import logger
-from scapy.layers.tls.record import TLSChangeCipherSpec, TLSApplicationData
-from scapy.layers.tls.session import _GenericTLSSessionInheritance
-from scapy.packet import Raw
-
-import utils.logging_config  # noqa: F401
-from utils.extract import extract_key_shares  # noqa: F401
-
-from utils.conversions import int_to_bytes
 from grpc_reflection.v1alpha import reflection
-
-# from scapy.layers.tls.handshake import TLSClientHello, TLS13NewSessionTicket
-import scapy
-
-from scapy.layers.tls.extensions import TLS_Ext_Unknown
-from scapy.layers.tls.handshake import (
-    TLS13ClientHello,
-    TLS13ServerHello,
-    TLS13NewSessionTicket,
-    TLS13Certificate,
-    TLS13CertificateRequest,
-    TLS13KeyUpdate,
-    TLS13EndOfEarlyData,
-    TLS13HelloRetryRequest,
-    TLSClientHello,
-)
-
-# Import the generated classes
-import tls13_pb2, tls13_pb2_grpc
+from loguru import logger
 
 import tls13_parser
+# Import the generated classes
+import tls13_pb2
+import tls13_pb2_grpc
+import utils.logging_config
+from utils.extract import extract_key_shares
+
+
+# from scapy.layers.tls.handshake import TLSClientHello, TLS13NewSessionTicket
 
 
 def grpc_encode(parse_response: dict, format_func=tls13_pb2.ParseResponse):
