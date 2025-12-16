@@ -15,6 +15,8 @@ from scapy.layers.tls.session import _GenericTLSSessionInheritance
 from scapy.packet import Raw
 
 import utils.logging_config  # noqa: F401
+from utils.extract import extract_key_shares  # noqa: F401
+
 from utils.conversions import int_to_bytes
 from grpc_reflection.v1alpha import reflection
 
@@ -70,12 +72,7 @@ class SpecificServicer(tls13_pb2_grpc.SpecificServicer):
         try:
             parsed = tls13_parser.parse_tls13_cached(
                     data)
-            # never saw a case in which we have multiple messages, leaving this to future work, may be solved by flatting?
-            key_share_entries = []
-            for ext in parsed.get("messages")[0].get("client_hello").get("extensions"):
-                if ext.get("key_share_extension") is not None:
-                    key_share_entries.extend(ext.get("key_share_extension").get("key_share_entry"))
-            return grpc_encode(dict(key_share_entry=key_share_entries), format_func=tls13_pb2.KeyShareExtension)
+            return grpc_encode(dict(key_share_entry=extract_key_shares(parsed)), format_func=tls13_pb2.KeyShareExtension)
             raise AssertionError("No key_share_extension found.")
         except AssertionError as e:
             logger.exception(e)
