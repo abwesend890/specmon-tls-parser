@@ -145,7 +145,7 @@ tsp = TLSSessionParser()
 def parse_tls13_cached(
     data: bytes | str, known_content_type: ContentType = ContentType.Unknown
 ) -> dict:
-    logger.info(f"Parsing data: {data.hex()}")
+    logger.debug(f"Parsing data: {data.hex()}")
     res: List[_GenericTLSSessionInheritance] = tsp.parse_chunk(data, known_content_type)
     return _get_parsed_dict(res)
 
