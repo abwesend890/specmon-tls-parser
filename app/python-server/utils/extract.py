@@ -1,8 +1,9 @@
 def extract_key_shares(parsed):
     messages = parsed.get("messages")
-    assert messages, "Parsed data contains no messages"
-
     key_share_entries = []
+    if len(messages) == 0:
+        return key_share_entries
+
     for msg in messages:
         client_hello = msg.get("client_hello")
 
