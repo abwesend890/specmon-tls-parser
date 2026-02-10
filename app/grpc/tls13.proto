@@ -6,28 +6,6 @@ package Tls13Parser;
 option go_package = "./Tls13Parser";
 
 
-// ---------------------------------------
-// --------- BEGIN Utils section
-// ---------------------------------------
-//
-//service Utils {
-//  rpc Split (SplitRequest) returns (SplitResponse) {}
-//}
-//
-//message SplitRequest {
-//  string data = 1;
-//  uint32 pos = 2;
-//}
-//
-//message SplitResponse {
-//  string part1 = 1;
-//  string part2 = 2;
-//}
-
-// ---------------------------------------
-// --------- END Utils section
-// ---------------------------------------
-
 
 // ---------------------------------------
 // --------- BEGIN TLS13 section
