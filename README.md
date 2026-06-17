@@ -7,10 +7,13 @@ ParseHelloRetryRequest` exists as dedicated function as the generic scapy functi
 
 See Marcos in https://github.com/abwesend890/CryptoTrack/blob/main/spthy/monitor_tls13.spthy to get more context.
 
-## Start the server
+## Easy use with docker compose
+Run `docker compose up`
+
+## Start the server without docker
 - Run `make` to start the server in foreground mode.
 - Run `make detached` to start the server in background mode.
 
-## Stop the server
+## Stop the server without docker
 - If executed in foreground mode, use `CTRL+C`.
 - Run `make down` to stop the server.
