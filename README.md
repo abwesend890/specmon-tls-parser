@@ -1,11 +1,11 @@
 # TLS Parser Service via gRPC server
 This project exposes a gGRPC server on `127.0.0.1:50051`.
-The server provides the `Tls13Parser.TlsParser` service.
-The service includes the methods
-- `Parse`
-- `ParseHelloRetryRequest`
+The server provides the `Tls13Parser.Generic`service with the request name `Parse`.
+Also it provides the `Tls13Parser.Specific` with the request name `ParseHelloRetryRequest` and `GetKeyShareExtension`
 
-`ParseHelloRetryRequest` exists as dedicated function as the generic scapy function failed to successfully parse this message kind.
+ParseHelloRetryRequest` exists as dedicated function as the generic scapy function failed to successfully parse this message kind.
+
+See Marcos in https://github.com/abwesend890/CryptoTrack/blob/main/spthy/monitor_tls13.spthy to get more context.
 
 ## Start the server
 - Run `make` to start the server in foreground mode.
